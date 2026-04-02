@@ -1,18 +1,17 @@
-import { Newspaper, Radio, Shield, AlertTriangle, Eye, Pencil } from 'lucide-react';
+import { Newspaper, Radio, Shield, AlertTriangle, Eye, ArrowRight } from 'lucide-react';
 import { StatCard } from '../components/StatCard';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
-import { RiskBadge } from '../components/RiskBadge';
 import { Button } from '../components/ui/button';
 import { useState } from 'react';
 import { NewsModal } from '../components/NewsModal';
+import { Head, Link } from '@inertiajs/react';
 
-// 1. Accept the real data from Laravel as props
 export default function Dashboard({ stats, recentNews }: any) {
   const [selectedNews, setSelectedNews] = useState<any | null>(null);
 
-  // 2. Format the real stats for your Pie Chart
+  // Format the real stats for your Pie Chart
   const riskData = [
     { name: 'Favorable', value: stats.favorable, fill: '#16A34A' },
     { name: 'Neutral', value: stats.neutral, fill: '#64748B' },
@@ -21,16 +20,28 @@ export default function Dashboard({ stats, recentNews }: any) {
 
   return (
     <div className="space-y-6">
+      <Head title="Commander's Dashboard - EMC" />
+      
       {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-semibold text-[#1E293B]">Dashboard</h1>
-        <p className="text-gray-500 mt-1">Real-time overview of monitored news database</p>
+      <div className="flex justify-between items-end">
+        <div>
+          <h1 className="text-3xl font-bold text-[#1E293B] tracking-tight">Dashboard</h1>
+          <p className="text-gray-500 mt-1 uppercase text-xs font-bold tracking-widest">
+            Strategic News Intelligence Overview
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-xs font-bold text-gray-400 uppercase">Current Status</p>
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+            System Operational
+          </span>
+        </div>
       </div>
 
-      {/* Statistics Cards - Using real stats */}
+      {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
-          title="Total News"
+          title="Total Reports"
           value={stats.total}
           icon={Newspaper}
           color="#7B1E1E"
@@ -57,10 +68,10 @@ export default function Dashboard({ stats, recentNews }: any) {
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Risk Level Distribution - Pie Chart */}
-        <Card className="shadow-md">
+        {/* Pie Chart */}
+        <Card className="shadow-md border-t-4 border-t-[#1E293B]">
           <CardHeader>
-            <CardTitle>Sentiment Distribution</CardTitle>
+            <CardTitle className="text-sm font-bold uppercase tracking-wider text-gray-500">Sentiment Distribution</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -79,75 +90,85 @@ export default function Dashboard({ stats, recentNews }: any) {
                   ))}
                 </Pie>
                 <Tooltip />
-                <Legend />
+                <Legend verticalAlign="bottom" height={36}/>
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
         {/* Informational Card for the Commander */}
-        <Card className="shadow-md border-l-4 border-l-[#7B1E1E]">
+        <Card className="shadow-md border-l-4 border-l-[#7B1E1E] flex flex-col justify-between">
           <CardHeader>
-            <CardTitle className="text-[#7B1E1E]">Commander's Briefing</CardTitle>
+            <CardTitle className="text-[#7B1E1E] text-lg font-bold flex items-center gap-2">
+              <Shield className="size-5" />
+              Commander's Briefing
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-gray-600">
-              The database currently contains <span className="font-bold">{stats.total}</span> total monitored items. 
+          <CardContent className="space-y-6 flex-1">
+            <p className="text-sm text-gray-600 leading-relaxed">
+              The monitoring database currently contains <span className="font-bold text-[#1E293B]">{stats.total}</span> total intelligence items. 
             </p>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-xs font-semibold text-gray-400 uppercase mb-2">Priority Focus</p>
-              <p className="text-lg font-medium text-red-700">
-                {stats.unfavorable} Unfavorable reports require immediate review.
+            <div className="bg-red-50 p-4 rounded-lg border border-red-100">
+              <p className="text-xs font-bold text-red-400 uppercase mb-2 tracking-widest">Priority Alert</p>
+              <p className="text-2xl font-bold text-red-700">
+                {stats.unfavorable} Reports
               </p>
+              <p className="text-sm text-red-600 mt-1 italic">Requiring immediate command review.</p>
             </div>
-            <Button className="w-full bg-[#1E293B]" onClick={() => window.location.href='/monitoring'}>
-              View Full Monitoring Table
-            </Button>
+            
+            <Link href="/monitoring">
+              <Button className="w-full bg-[#1E293B] hover:bg-[#1E293B]/90 group">
+                Access Monitoring Vault
+                <ArrowRight className="ml-2 size-4 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </Link>
           </CardContent>
         </Card>
       </div>
 
-      {/* Recent News Table - Using real recentNews */}
-      <Card className="shadow-md">
-        <CardHeader>
-          <CardTitle>Recent News Entries</CardTitle>
+      {/* Recent News Table */}
+      <Card className="shadow-md overflow-hidden border-t-4 border-t-slate-200">
+        <CardHeader className="bg-slate-50/50">
+          <CardTitle className="text-sm font-bold uppercase tracking-wider text-gray-500">Recent Intelligence Entries</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           <Table>
-            <TableHeader>
+            <TableHeader className="bg-slate-50">
               <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Source</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="font-bold">Title</TableHead>
+                <TableHead className="font-bold">Media Source</TableHead>
+                <TableHead className="font-bold">Category</TableHead>
+                <TableHead className="font-bold">Date</TableHead>
+                <TableHead className="text-right font-bold">Details</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {recentNews.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-10 text-gray-400">
-                    No news data available in the database yet.
+                  <TableCell colSpan={5} className="text-center py-20 text-gray-400 italic font-medium">
+                    Intelligence database is empty. No recent entries found.
                   </TableCell>
                 </TableRow>
               ) : (
                 recentNews.map((news: any) => (
-                  <TableRow key={news.id} className="hover:bg-gray-50">
-                    <TableCell className="font-medium max-w-md truncate">{news.title}</TableCell>
-                    <TableCell>{news.media_outfit}</TableCell>
+                  <TableRow key={news.id} className="hover:bg-blue-50/30 transition-colors cursor-default">
+                    <TableCell className="font-semibold text-slate-700 max-w-md truncate">{news.title}</TableCell>
+                    <TableCell className="text-slate-500 font-medium">{news.media_outfit}</TableCell>
                     <TableCell>
-                      <span className={`px-2 py-1 rounded text-xs font-bold ${
-                        news.category === 'Favorable' ? 'bg-green-100 text-green-700' :
-                        news.category === 'Unfavorable' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                        news.category === 'Favorable' ? 'bg-green-100 text-green-700 border border-green-200' :
+                        news.category === 'Unfavorable' ? 'bg-red-100 text-red-700 border border-red-200' : 
+                        'bg-slate-100 text-slate-700 border border-slate-200'
                       }`}>
                         {news.category}
                       </span>
                     </TableCell>
-                    <TableCell>{news.date}</TableCell>
+                    <TableCell className="text-slate-500 tabular-nums">{news.date}</TableCell>
                     <TableCell className="text-right">
                       <Button 
                         variant="ghost" 
                         size="sm"
+                        className="hover:bg-[#7B1E1E]/10 hover:text-[#7B1E1E]"
                         onClick={() => setSelectedNews(news)}
                       >
                         <Eye className="size-4" />

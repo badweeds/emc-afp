@@ -40,7 +40,7 @@ Route::get('/dashboard', function () {
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-// 2. NEWS MANAGEMENT (RESTORED ADD NEWS)
+// 2. NEWS MANAGEMENT (ADD NEWS RESTORED)
 Route::middleware('auth')->group(function () {
     Route::get('/add-news', function () {
         return Inertia::render('AddNews');
@@ -81,7 +81,7 @@ Route::get('/reports', function () {
 })->middleware(['auth']);
 
 
-// --- 4. IDENTICAL DOCX EXPORT (UNIFIED TABLE & TIGHT ALIGNMENT) ---
+// --- 4. IDENTICAL DOCX EXPORT ---
 Route::get('/export/docx', function (Request $request) {
     $from = $request->query('from');
     $to = $request->query('to');
@@ -91,7 +91,7 @@ Route::get('/export/docx', function (Request $request) {
     $section = $phpWord->addSection();
     $tight = ['spaceAfter' => 0, 'spaceBefore' => 0];
 
-    // --- COVER PAGE ---
+    // COVER PAGE
     $section->addTextBreak(2);
     $section->addText("TEAM EASTMINCOM", ['name' => 'Arial', 'size' => 36, 'bold' => true], ['alignment' => Jc::CENTER, 'spaceAfter' => 0]);
     $section->addTextBreak(1);
@@ -108,39 +108,34 @@ Route::get('/export/docx', function (Request $request) {
     
     $section->addPageBreak();
 
-    // --- TABLE OF CONTENTS PAGE ---
-    
-    // Top Titles (Arial 11 Bold)
-    $section->addText("TABLE OF CONTENTS", ['name' => 'Arial', 'size' => 11, 'bold' => true], ['alignment' => Jc::CENTER, 'spaceAfter' => 0]);    
-    // Red Date Subtitle (Right Aligned in the image context, but we can put it on the next line or right-tabbed)
+    // TABLE OF CONTENTS HEADER
+    $section->addText("TABLE OF CONTENTS", ['name' => 'Arial', 'size' => 11, 'bold' => true], ['alignment' => Jc::CENTER, 'spaceAfter' => 0]);
     $redDate = "1700 " . date('d', strtotime($from)) . "- 1700 " . date('d F Y', strtotime($to));
     $section->addText($redDate, ['name' => 'Arial', 'size' => 12, 'bold' => true, 'color' => 'FF0000'], ['alignment' => Jc::CENTER, 'spaceAfter' => 0]);
     
     $section->addTextBreak(1);
 
-    // --- START OF THE UNIFIED TABLE (CONNECTED BORDERS) ---
+    // UNIFIED TABLE (CONNECTED BORDERS)
     $styleTable = ['borderSize' => 6, 'borderColor' => '000000', 'cellMargin' => 80];
     $phpWord->addTableStyle('MilitaryTable', $styleTable);
     $table = $section->addTable('MilitaryTable');
     
-    // ROW 1: Blue Header - Daily News Monitoring
+    // Blue Rows
     $table->addRow();
-    $cellHeader1 = $table->addCell(10000, ['gridSpan' => 3, 'bgColor' => '07193D']);
-    $cellHeader1->addText("Daily News Monitoring", ['name' => 'Arial', 'size' => 12, 'bold' => true, 'color' => 'FFFFFF'], ['alignment' => Jc::LEFT, 'spaceAfter' => 0]);
+    $cellH1 = $table->addCell(10000, ['gridSpan' => 3, 'bgColor' => '0000FF']);
+    $cellH1->addText("Daily News Monitoring", ['name' => 'Arial', 'size' => 12, 'bold' => true, 'color' => 'FFFFFF'], ['alignment' => Jc::LEFT, 'spaceAfter' => 0]);
     
-    // ROW 2: Blue Header - Time Range
     $table->addRow();
-    $cellHeader2 = $table->addCell(10000, ['gridSpan' => 3, 'bgColor' => '07193D']);
-    $timeRangeText = "1700H " . date('d', strtotime($from)) . " – 1700H " . date('d F Y', strtotime($to));
-    $cellHeader2->addText($timeRangeText, ['name' => 'Arial', 'size' => 12, 'bold' => true, 'color' => 'FFFFFF'], ['alignment' => Jc::LEFT, 'spaceAfter' => 0]);
+    $cellH2 = $table->addCell(10000, ['gridSpan' => 3, 'bgColor' => '0000FF']);
+    $timeRange = "1700H " . date('d', strtotime($from)) . " – 1700H " . date('d F Y', strtotime($to));
+    $cellH2->addText($timeRange, ['name' => 'Arial', 'size' => 12, 'bold' => true, 'color' => 'FFFFFF'], ['alignment' => Jc::LEFT, 'spaceAfter' => 0]);
 
-    // ROW 3: Column Names
+    // NR / TITLE / PUBLISHER
     $table->addRow();
-    $table->addCell(1000)->addText("PAGE\nNR", ['name' => 'Arial', 'size' => 12, 'color' => '0F4761'], ['alignment' => Jc::CENTER, 'spaceAfter' => 0]);
-    $table->addCell(6500)->addText("TITLE / SUMMARY / LINK", ['name' => 'Arial', 'bold' => true, 'size' => 12], ['alignment' => Jc::CENTER, 'spaceAfter' => 0]);
-    $table->addCell(2500)->addText("Publisher / Author", ['name' => 'Arial', 'bold' => true, 'size' => 12], ['alignment' => Jc::CENTER, 'spaceAfter' => 0]);
+    $table->addCell(1000)->addText("PAGE\nNR", ['name' => 'Arial', 'bold' => true, 'size' => 10], ['alignment' => Jc::CENTER, 'spaceAfter' => 0]);
+    $table->addCell(6500)->addText("TITLE / SUMMARY / LINK", ['name' => 'Arial', 'bold' => true, 'size' => 10], ['alignment' => Jc::CENTER, 'spaceAfter' => 0]);
+    $table->addCell(2500)->addText("Publisher / Author", ['name' => 'Arial', 'bold' => true, 'size' => 10], ['alignment' => Jc::CENTER, 'spaceAfter' => 0]);
 
-    // DATA ROWS
     foreach ($news as $index => $item) {
         $table->addRow();
         $table->addCell(1000)->addText($index + 1, ['name' => 'Arial'], ['alignment' => Jc::CENTER, 'spaceAfter' => 0]);
@@ -153,11 +148,8 @@ Route::get('/export/docx', function (Request $request) {
         $table->addCell(2500)->addText($item->media_outfit, ['name' => 'Arial', 'bold' => true, 'size' => 10], ['spaceAfter' => 0]);
     }
 
-    // --- SIGNATURE BLOCK ---
+    // SIGNATURES
     $section->addTextBreak(2);
-    $section->addText("NOTE: This is the monitored news covering the period of " . date('d-m F Y', strtotime($from)), ['name' => 'Arial', 'size' => 10]);
-    $section->addTextBreak(2);
-
     $sigTable = $section->addTable();
     $sigTable->addRow();
     $c1 = $sigTable->addCell(5000);
@@ -180,7 +172,7 @@ Route::get('/export/docx', function (Request $request) {
     return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
 })->middleware(['auth']);
 
-// 5. YEARLY EXCEL EXPORT
+// YEARLY EXCEL
 Route::get('/export/excel', function () {
     return Excel::download(new NewsExport, 'PIO_EMC_Yearly_News_Data.xlsx');
 })->middleware(['auth']);
