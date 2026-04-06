@@ -40,9 +40,9 @@ export default function AddNews() {
   const { data, setData, post, processing, reset, transform } = useForm({
     title: '',
     summary: '',
-    scope: '', // Local, National, International
+    scope: '', 
     media_outfit: '',
-    custom_media_outfit: '', // Used if 'Others' is selected
+    custom_media_outfit: '', 
     topic: '',
     unit_involved: '',
     category: '', 
@@ -51,13 +51,11 @@ export default function AddNews() {
     image: null as File | null,
   });
 
-  // Automatically replace "Others" with the typed custom name right before sending to Laravel
   transform((formData) => ({
     ...formData,
     media_outfit: formData.media_outfit === 'Others' ? formData.custom_media_outfit : formData.media_outfit,
   }));
 
-  // --- AI ANALYSIS FUNCTION ---
   const handleAIAnalysis = async () => {
     if (!rawContent) {
       toast.error("Please paste the article text first!");
@@ -70,8 +68,8 @@ export default function AddNews() {
       const response = await axios.post('/analyze-news', { content: rawContent });
       setData(prev => ({
         ...prev,
-        summary: response.data.summary,
-        category: response.data.category
+        summary: response.data.summary || '',
+        category: response.data.category || ''
       }));
       toast.success("AI Analysis Complete!");
     } catch (error) {
@@ -81,7 +79,6 @@ export default function AddNews() {
     }
   };
 
-  // --- IMAGE UPLOAD HANDLER ---
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -99,7 +96,7 @@ export default function AddNews() {
     e.preventDefault();
     post('/news', {
       onSuccess: () => {
-        toast.success('Intelligence report saved to the database successfully!');
+        toast.success('Intelligence report saved successfully!');
         reset();
         setRawContent('');
         setImagePreview(null);
@@ -108,7 +105,6 @@ export default function AddNews() {
     });
   };
 
-  // Get the correct array of media sources based on the selected scope
   const currentMediaList = data.scope ? mediaSources[data.scope as keyof typeof mediaSources] : [];
 
   return (
@@ -128,13 +124,13 @@ export default function AddNews() {
             <div className="space-y-2">
               <Label>Paste Full Article Text Here</Label>
               <Textarea 
-                placeholder="Paste the full news article here. The Military Intelligence AI will read it, generate an executive summary, and determine the threat sentiment automatically..."
+                placeholder="Paste the full news article here..."
                 className="min-h-[120px] bg-slate-50"
                 value={rawContent}
                 onChange={(e) => setRawContent(e.target.value)}
               />
             </div>
-            <Button onClick={handleAIAnalysis} disabled={isAnalyzing} className="bg-blue-600 hover:bg-blue-700 gap-2">
+            <Button type="button" onClick={handleAIAnalysis} disabled={isAnalyzing} className="bg-blue-600 hover:bg-blue-700 gap-2">
               {isAnalyzing ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
               {isAnalyzing ? "Analyzing Intelligence..." : "Auto-Fill with AI"}
             </Button>
@@ -153,8 +149,8 @@ export default function AddNews() {
               
               {/* IMAGE UPLOAD SECTION */}
               <div className="p-4 bg-slate-50 border border-dashed border-slate-300 rounded-lg">
-                <Label className="flex items-center gap-2 mb-3 text-slate-700">
-                  <ImageIcon className="size-4" /> Attach Article Screenshot (For DOCX Report)
+                <Label className="mb-3 text-slate-700">
+                  <ImageIcon className="size-4 inline mr-2" /> Attach Article Screenshot
                 </Label>
                 {imagePreview ? (
                   <div className="relative inline-block">
@@ -175,8 +171,8 @@ export default function AddNews() {
                   <Input value={data.title} onChange={e => setData('title', e.target.value)} required />
                 </div>
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    Executive Summary * {data.summary && <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold uppercase">AI Assisted</span>}
+                  <Label>
+                    Executive Summary * {data.summary && <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold uppercase ml-2">AI Assisted</span>}
                   </Label>
                   <Textarea rows={3} value={data.summary} onChange={e => setData('summary', e.target.value)} required className={data.summary ? 'border-blue-300 bg-blue-50/20' : ''} />
                 </div>
@@ -207,16 +203,14 @@ export default function AddNews() {
                   </Select>
                 </div>
 
-                {/* SHOW MANUAL INPUT ONLY IF "OTHERS" IS SELECTED */}
                 {data.media_outfit === 'Others' && (
-                  <div className="space-y-2 animate-in fade-in zoom-in duration-200">
+                  <div className="space-y-2">
                     <Label>Specify Media Outfit *</Label>
                     <Input 
                       placeholder="Type media name..." 
                       value={data.custom_media_outfit} 
                       onChange={e => setData('custom_media_outfit', e.target.value)} 
                       required 
-                      className="border-[#7B1E1E] focus-visible:ring-[#7B1E1E]"
                     />
                   </div>
                 )}
@@ -238,8 +232,8 @@ export default function AddNews() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    Category (Sentiment) * {data.category && <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold uppercase">AI Assisted</span>}
+                  <Label>
+                    Category (Sentiment) * {data.category && <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold uppercase ml-2">AI Assisted</span>}
                   </Label>
                   <Select value={data.category} onValueChange={(val) => setData('category', val)}>
                     <SelectTrigger className={data.category ? 'border-blue-300 bg-blue-50/20' : ''}>
