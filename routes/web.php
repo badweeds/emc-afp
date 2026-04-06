@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http; // ADDED FOR AI API
 use App\Models\NewsArticle;
 use Inertia\Inertia;
 use Maatwebsite\Excel\Facades\Excel;
@@ -40,18 +41,68 @@ Route::get('/dashboard', function () {
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-// 2. NEWS MANAGEMENT (ADD NEWS RESTORED)
+// 2. NEWS MANAGEMENT (ADD NEWS & AI INTEGRATION)
 Route::middleware('auth')->group(function () {
     Route::get('/add-news', function () {
         return Inertia::render('AddNews');
     });
 
+    // --- AI AUTO-ANALYZER ROUTE ---
+    Route::post('/analyze-news', function (Request $request) {
+        $request->validate(['content' => 'required|string']);
+
+        $apiKey = env('GEMINI_API_KEY');
+        
+        $prompt = 'You are a military intelligence analyst. Read the following news article. 
+        1. Write a professional, concise 2-sentence summary. 
+        2. Determine the sentiment of the article towards the military/government. It MUST be exactly one of these words: "Favorable", "Neutral", or "Unfavorable".
+        Output ONLY a valid JSON object in this exact format: {"summary": "your summary", "category": "Favorable/Neutral/Unfavorable"}.
+        
+        Article Text: ' . $request->content;
+
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json',
+        ])->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$apiKey}", [
+            'contents' => [
+                ['parts' => [['text' => $prompt]]]
+            ]
+        ]);
+
+        if ($response->successful()) {
+            $result = $response->json();
+            $aiText = $result['candidates'][0]['content']['parts'][0]['text'] ?? '';
+            
+            // Clean the response to ensure it's pure JSON
+            $aiText = str_replace(['```json', '```'], '', $aiText);
+            return response()->json(json_decode(trim($aiText), true));
+        }
+
+        return response()->json(['error' => 'AI Analysis failed.'], 500);
+    });
+
+    // --- SAVE NEWS ENTRY (NOW SUPPORTS IMAGE & SCOPE) ---
     Route::post('/news', function (Request $request) {
         $validated = $request->validate([
-            'title' => 'required', 'summary' => 'required', 'media_outfit' => 'required',
-            'topic' => 'required', 'unit_involved' => 'required', 'category' => 'required',
-            'date' => 'required', 'url' => 'nullable|url'
+            'title' => 'required', 
+            'summary' => 'required', 
+            'media_outfit' => 'required',
+            'topic' => 'required', 
+            'unit_involved' => 'required', 
+            'category' => 'required',
+            'date' => 'required', 
+            'url' => 'nullable|url',
+            'scope' => 'nullable|string',
+            'image' => 'nullable|image|max:5120' // 5MB Max for Screenshots
         ]);
+
+        // Handle Image Upload securely
+        if ($request->hasFile('image')) {
+            $validated['image_path'] = $request->file('image')->store('news_images', 'public');
+        }
+
+        // Remove the file object from array before passing to database
+        unset($validated['image']);
+
         NewsArticle::create($validated);
         return redirect()->back();
     });
