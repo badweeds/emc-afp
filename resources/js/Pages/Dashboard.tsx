@@ -1,19 +1,18 @@
 // @ts-nocheck
 import React, { useState } from 'react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout'; // FIXED IMPORT
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
 import { Newspaper, Radio, Shield, AlertTriangle, Eye, ArrowRight } from 'lucide-react';
-import { StatCard } from '@/Components/StatCard'; // FIXED IMPORT
-import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card'; // FIXED IMPORT
+import { StatCard } from '@/Components/StatCard';
+import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table'; // FIXED IMPORT
-import { Button } from '@/Components/ui/button'; // FIXED IMPORT
-import { NewsModal } from '@/Components/NewsModal'; // FIXED IMPORT
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
+import { Button } from '@/Components/ui/button';
+import { NewsModal } from '@/Components/NewsModal';
 
 export default function Dashboard({ auth, stats, recentNews }: any) {
   const [selectedNews, setSelectedNews] = useState<any | null>(null);
 
-  // Format the real stats for your Pie Chart
   const riskData = [
     { name: 'Favorable', value: stats?.favorable || 0, fill: '#16A34A' },
     { name: 'Neutral', value: stats?.neutral || 0, fill: '#64748B' },
@@ -21,14 +20,12 @@ export default function Dashboard({ auth, stats, recentNews }: any) {
   ];
 
   return (
-    // WRAP EVERYTHING IN THE AUTHENTICATED LAYOUT
     <AuthenticatedLayout
-        header={<h2 className="font-semibold text-xl leading-tight">Commander's Overview</h2>}
+        header={<h2 className="font-semibold text-xl text-slate-800 leading-tight">Commander's Overview</h2>}
     >
       <Head title="Dashboard - EMC" />
       
-      <div className="space-y-6">
-        {/* Page Header */}
+      <div className="space-y-6 max-w-7xl mx-auto">
         <div className="flex justify-between items-end">
           <div>
             <h1 className="text-3xl font-bold text-[#1E293B] tracking-tight">Dashboard</h1>
@@ -44,7 +41,6 @@ export default function Dashboard({ auth, stats, recentNews }: any) {
           </div>
         </div>
 
-        {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard title="Total Reports" value={stats?.total || 0} icon={Newspaper} color="#7B1E1E" />
           <StatCard title="Favorable" value={stats?.favorable || 0} icon={Shield} color="#16A34A" />
@@ -52,9 +48,7 @@ export default function Dashboard({ auth, stats, recentNews }: any) {
           <StatCard title="Unfavorable" value={stats?.unfavorable || 0} icon={AlertTriangle} color="#DC2626" />
         </div>
 
-        {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Pie Chart */}
           <Card className="shadow-md border-t-4 border-t-[#1E293B]">
             <CardHeader>
               <CardTitle className="text-sm font-bold uppercase tracking-wider text-gray-500">Sentiment Distribution</CardTitle>
@@ -76,7 +70,6 @@ export default function Dashboard({ auth, stats, recentNews }: any) {
             </CardContent>
           </Card>
 
-          {/* Informational Card for the Commander */}
           <Card className="shadow-md border-l-4 border-l-[#7B1E1E] flex flex-col justify-between">
             <CardHeader>
               <CardTitle className="text-[#7B1E1E] text-lg font-bold flex items-center gap-2">
@@ -106,7 +99,6 @@ export default function Dashboard({ auth, stats, recentNews }: any) {
           </Card>
         </div>
 
-        {/* Recent News Table */}
         <Card className="shadow-md overflow-hidden border-t-4 border-t-slate-200">
           <CardHeader className="bg-slate-50/50">
             <CardTitle className="text-sm font-bold uppercase tracking-wider text-gray-500">Recent Intelligence Entries</CardTitle>
