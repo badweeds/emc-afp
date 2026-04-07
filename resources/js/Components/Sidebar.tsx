@@ -21,17 +21,23 @@ export default function Sidebar() {
   ];
 
   return (
-    // 'fixed' keeps it pinned, 'h-screen' makes it full height, 'z-50' keeps it on top
-    <div className="fixed left-0 top-0 h-screen w-64 flex flex-col bg-[#1E293B] text-white shadow-2xl z-50">
+    // Updated to Command Navy Background
+    <div className="fixed left-0 top-0 h-screen w-64 flex flex-col bg-[#1A237E] text-white shadow-2xl z-50">
+      
       {/* Brand Header */}
-      <div className="flex h-20 items-center justify-center border-b border-slate-700 px-6 py-4">
+      <div className="flex h-20 items-center justify-center border-b border-white/10 px-6 py-4">
         <div className="flex items-center gap-3">
-          <div className="rounded-lg bg-[#7B1E1E] p-2 shadow-lg">
-            <Shield className="size-6 text-white" />
+          {/* Logo Icon - Gold Background with Navy Shield */}
+          <div className="rounded-lg bg-[#FBC02D] p-2 shadow-lg">
+            <Shield className="size-6 text-[#1A237E]" />
           </div>
           <div className="flex flex-col">
-            <span className="text-lg font-bold tracking-tighter leading-tight italic">EMC NEWS</span>
-            <span className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Eastmincom AFP</span>
+            {/* Split Typography Color */}
+            <span className="text-lg font-bold tracking-tighter leading-tight italic">
+              <span className="text-white">EMC </span>
+              <span className="text-[#FBC02D]">NEWS</span>
+            </span>
+            <span className="text-[10px] text-slate-300 uppercase tracking-widest font-semibold">Eastmincom AFP</span>
           </div>
         </div>
       </div>
@@ -44,13 +50,13 @@ export default function Sidebar() {
             <Link
               key={item.name}
               href={item.href}
-              className={`group flex items-center px-4 py-3 text-sm font-medium transition-all duration-200 rounded-lg ${
+              className={`group flex items-center px-4 py-3 text-sm font-bold transition-all duration-200 rounded-lg ${
                 isActive 
-                  ? 'bg-[#7B1E1E] text-white shadow-md border-l-4 border-white' 
-                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                  ? 'bg-[#FBC02D] text-[#1A237E] shadow-md border-l-4 border-white' // Gold active state with Navy text
+                  : 'text-slate-300 hover:bg-white/10 hover:text-white' // Clean hover for Navy background
               }`}
             >
-              <item.icon className={`mr-3 size-5 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-white'}`} />
+              <item.icon className={`mr-3 size-5 ${isActive ? 'text-[#1A237E]' : 'text-slate-400 group-hover:text-white'}`} />
               {item.name}
             </Link>
           );
@@ -58,7 +64,7 @@ export default function Sidebar() {
       </nav>
 
       {/* Logout & Footer */}
-      <div className="border-t border-slate-700 p-4 space-y-1 text-center">
+      <div className="border-t border-white/10 p-4 space-y-1 text-center">
         <Link
           href={route('logout')}
           method="post"
@@ -68,7 +74,7 @@ export default function Sidebar() {
           <LogOut className="mr-3 size-5" />
           Log Out
         </Link>
-        <p className="mt-4 text-[10px] font-bold text-slate-500 tracking-widest uppercase italic pb-2">
+        <p className="mt-4 text-[10px] font-bold text-slate-400 tracking-widest uppercase italic pb-2">
           "Para sa Bayan"
         </p>
       </div>

@@ -1,1 +1,10 @@
 @import "tailwindcss";
+
+@layer base {
+  :root {
+    --command-navy: #1A237E;
+    --insignia-gold: #FBC02D;
+    --tactical-green: #1B5E20;
+    --slate-grey: #424242;
+  }
+}

@@ -7,7 +7,8 @@ export default function Authenticated({
     header,
     children,
 }: PropsWithChildren<{ header?: ReactNode }>) {
-    const user = usePage().props.auth.user;
+    // Added a fallback just in case the user prop is ever missing
+    const user = usePage().props.auth?.user || { name: 'Commander' };
 
     return (
         <div className="min-h-screen bg-gray-50 flex dark:bg-gray-900">
@@ -36,7 +37,7 @@ export default function Authenticated({
                                             </span>
                                         </Dropdown.Trigger>
                                         <Dropdown.Content>
-                                            <Dropdown.Link href={route('profile.edit')}>Profile</Dropdown.Link>
+                                            {/* Safely removed the profile route to stop the Ziggy crash */}
                                             <Dropdown.Link href={route('logout')} method="post" as="button">Log Out</Dropdown.Link>
                                         </Dropdown.Content>
                                     </Dropdown>
