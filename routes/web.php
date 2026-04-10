@@ -48,18 +48,21 @@ Route::middleware('auth')->group(function () {
         return Inertia::render('AddNews');
     });
 
-    // --- AI AUTO-ANALYZER ROUTE ---
+    // --- SUPERCHARGED AI AUTO-ANALYZER ROUTE ---
     Route::post('/analyze-news', function (Request $request) {
         $request->validate(['content' => 'required|string']);
 
         $apiKey = env('GEMINI_API_KEY');
         
-        $prompt = 'You are a military intelligence analyst. Read the following news article. 
-        1. Write a professional, concise 2-sentence summary. 
-        2. Determine the sentiment of the article towards the military/government. It MUST be exactly one of these words: "Favorable", "Neutral", or "Unfavorable".
-        Output ONLY a valid JSON object in this exact format: {"summary": "your summary", "category": "Favorable/Neutral/Unfavorable"}.
+        $prompt = 'You are a military intelligence analyst. Read the following pasted text (which may contain a news article, URL, reporter name, etc.). 
+        Extract the following details and output ONLY a valid JSON object matching these exact keys:
+        1. "summary": A professional, concise 2-sentence summary of the news.
+        2. "category": Sentiment towards the military/government. Exactly one of: "Favorable", "Neutral", "Unfavorable".
+        3. "title": The headline of the article (or generate one if missing).
+        4. "reporter": The name of the reporter/author (or empty string if not found).
+        5. "url": Any website link found in the text (or empty string if not found).
         
-        Article Text: ' . $request->content;
+        Text: ' . $request->content;
 
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
@@ -81,12 +84,13 @@ Route::middleware('auth')->group(function () {
         return response()->json(['error' => 'AI Analysis failed.'], 500);
     });
 
-    // --- SAVE NEWS ENTRY (NOW SUPPORTS IMAGE & SCOPE) ---
+    // --- SAVE NEWS ENTRY ---
     Route::post('/news', function (Request $request) {
         $validated = $request->validate([
             'title' => 'required', 
             'summary' => 'required', 
             'media_outfit' => 'required',
+            'reporter' => 'nullable|string', // Reporter field added
             'topic' => 'required', 
             'unit_involved' => 'required', 
             'category' => 'required',
@@ -109,8 +113,32 @@ Route::middleware('auth')->group(function () {
         return redirect()->back();
     });
 
-    Route::patch('/news/{newsArticle}', function (Request $request, NewsArticle $newsArticle) {
-        $newsArticle->update($request->all());
+    // --- UPDATE NEWS ENTRY (HANDLES IMAGE REPLACEMENT) ---
+    // NOTE: Inertia uses POST with _method=patch for file uploads.
+    Route::post('/news/{newsArticle}', function (Request $request, NewsArticle $newsArticle) {
+        $validated = $request->validate([
+            'title' => 'required', 
+            'summary' => 'required', 
+            'media_outfit' => 'required',
+            'reporter' => 'nullable|string',
+            'topic' => 'required', 
+            'unit_involved' => 'required', 
+            'category' => 'required',
+            'date' => 'required', 
+            'url' => 'nullable|url',
+            'scope' => 'nullable|string',
+            'image' => 'nullable|image|max:5120'
+        ]);
+
+        // If a new image is uploaded, process it and update the path
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('news_images', 'public');
+            $validated['image_path'] = str_replace('\\', '/', $path);
+        }
+        
+        unset($validated['image']);
+
+        $newsArticle->update($validated);
         return redirect()->back();
     });
 
@@ -196,7 +224,9 @@ Route::get('/export/docx', function (Request $request) {
         if($item->url) {
             $cell->addText($item->url, ['name' => 'Arial', 'size' => 8, 'color' => '0000FF', 'underline' => 'single'], ['spaceAfter' => 0]);
         }
-        $table->addCell(2500)->addText($item->media_outfit, ['name' => 'Arial', 'bold' => true, 'size' => 10], ['spaceAfter' => 0]);
+        // Updated to show Reporter alongside Media Outfit
+        $publisherAuthor = $item->media_outfit . ($item->reporter ? "\n" . $item->reporter : "");
+        $table->addCell(2500)->addText($publisherAuthor, ['name' => 'Arial', 'bold' => true, 'size' => 10], ['spaceAfter' => 0]);
     }
 
     $section->addTextBreak(2);
@@ -235,12 +265,10 @@ Route::middleware('auth')->group(function () {
 
 // --- 5. THE ULTIMATE WINDOWS IMAGE FIX (WITH DEBUGGER) ---
 Route::get('/news-image/{path}', function ($path) {
-    // Clean the path just in case old database entries have backslashes
     $cleanPath = str_replace('\\', '/', $path);
     $filePath = storage_path('app/public/' . $cleanPath);
     
     if (!file_exists($filePath)) {
-        // If it fails, this will print text to your screen telling us EXACTLY where it looked
         dd("DEBUG ERROR: The image does not exist at this exact folder location: " . $filePath);
     }
     

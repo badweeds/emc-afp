@@ -1,15 +1,15 @@
 import { useState } from 'react';
 import { Head, router, useForm } from '@inertiajs/react';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Input } from '../components/ui/input';
-import { Button } from '../components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
-import { Label } from '../components/ui/label';
-import { Textarea } from '../components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
-import { Eye, Pencil, Trash2, Search, Filter } from 'lucide-react';
-import { NewsModal } from '../components/NewsModal';
+import { Card, CardContent, CardHeader, CardTitle } from '../Components/ui/card';
+import { Input } from '../Components/ui/input';
+import { Button } from '../Components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../Components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../Components/ui/table';
+import { Label } from '../Components/ui/label';
+import { Textarea } from '../Components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../Components/ui/dialog';
+import { Eye, Pencil, Trash2, Search, Filter, X } from 'lucide-react';
+import { NewsModal } from '../Components/NewsModal';
 import { toast } from 'sonner';
 
 export interface NewsItem {
@@ -17,23 +17,24 @@ export interface NewsItem {
   title: string;
   summary: string;
   media_outfit: string;
+  reporter: string | null;
   topic: string;
   unit_involved: string;
   category: string;
   url: string;
   date: string;
+  image_path: string | null;
 }
 
-const newsSources = ["Inquirer", "Philippine Star", "Manila Bulletin", "GMA News", "ABS-CBN News", "Rappler", "Local Radio", "Social Media", "Others"];
+const newsSources = ["Mindanao Times", "RMN DXDC 621 Davao", "SunStar Davao", "Inquirer", "Philippine Star", "Manila Bulletin", "GMA News", "ABS-CBN News", "Rappler", "Others"];
 
 export default function NewsMonitoring({ news = [] }: { news: NewsItem[] }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSource, setFilterSource] = useState<string>('all');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
-  const [editNews, setEditNews] = useState<NewsItem | null>(null); // For the Edit Modal
+  const [editNews, setEditNews] = useState<NewsItem | null>(null);
   
-  // 1. DELETE LOGIC
   const handleDelete = (id: number) => {
     if (confirm('Are you sure you want to permanently delete this news entry?')) {
       router.delete(`/news/${id}`, {
@@ -45,7 +46,8 @@ export default function NewsMonitoring({ news = [] }: { news: NewsItem[] }) {
 
   const filteredNews = news.filter(item => {
     const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         (item.summary && item.summary.toLowerCase().includes(searchTerm.toLowerCase()));
+                         (item.summary && item.summary.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                         (item.reporter && item.reporter.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesSource = filterSource === 'all' || item.media_outfit === filterSource;
     const matchesCategory = filterCategory === 'all' || item.category === filterCategory;
     return matchesSearch && matchesSource && matchesCategory;
@@ -58,11 +60,10 @@ export default function NewsMonitoring({ news = [] }: { news: NewsItem[] }) {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-semibold text-[#1E293B]">News Monitoring</h1>
-          <p className="text-gray-500 mt-1">Monitor and filter all news entries</p>
+          <p className="text-gray-500 mt-1">Monitor, edit, and update all news entries</p>
         </div>
       </div>
 
-      {/* Filters */}
       <Card className="shadow-md">
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Filter className="size-5" /> Filters</CardTitle>
@@ -71,7 +72,7 @@ export default function NewsMonitoring({ news = [] }: { news: NewsItem[] }) {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="md:col-span-2 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
-              <Input placeholder="Search reports..." className="pl-10" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+              <Input placeholder="Search titles, summaries, or reporters..." className="pl-10" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
             </div>
             <Select value={filterSource} onValueChange={setFilterSource}>
               <SelectTrigger><SelectValue placeholder="Source" /></SelectTrigger>
@@ -93,7 +94,6 @@ export default function NewsMonitoring({ news = [] }: { news: NewsItem[] }) {
         </CardContent>
       </Card>
 
-      {/* Results Table */}
       <Card className="shadow-md">
         <CardContent className="pt-6">
           <Table>
@@ -101,6 +101,7 @@ export default function NewsMonitoring({ news = [] }: { news: NewsItem[] }) {
               <TableRow>
                 <TableHead>Title</TableHead>
                 <TableHead>Source</TableHead>
+                <TableHead>Reporter</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -108,12 +109,13 @@ export default function NewsMonitoring({ news = [] }: { news: NewsItem[] }) {
             </TableHeader>
             <TableBody>
               {filteredNews.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-8">No reports found.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center py-8">No reports found.</TableCell></TableRow>
               ) : (
                 filteredNews.map((item) => (
                   <TableRow key={item.id} className="hover:bg-gray-50">
-                    <TableCell className="font-medium max-w-md truncate">{item.title}</TableCell>
+                    <TableCell className="font-medium max-w-sm truncate">{item.title}</TableCell>
                     <TableCell>{item.media_outfit}</TableCell>
+                    <TableCell className="text-gray-600">{item.reporter || 'N/A'}</TableCell>
                     <TableCell>
                       <span className={`px-2 py-1 rounded text-xs font-bold ${
                         item.category === 'Favorable' ? 'bg-green-100 text-green-700' :
@@ -136,31 +138,42 @@ export default function NewsMonitoring({ news = [] }: { news: NewsItem[] }) {
         </CardContent>
       </Card>
 
-      {/* View Modal */}
       {selectedNews && <NewsModal news={selectedNews as any} open={!!selectedNews} onClose={() => setSelectedNews(null)} />}
-
-      {/* Edit Modal Component (Logic below) */}
       {editNews && <EditModal item={editNews} onClose={() => setEditNews(null)} />}
     </div>
   );
 }
 
-// 2. THE EDIT MODAL COMPONENT
+// 2. UPGRADED EDIT MODAL WITH IMAGE UPLOAD & REPORTER
 function EditModal({ item, onClose }: { item: NewsItem; onClose: () => void }) {
-  const { data, setData, patch, processing } = useForm({
+  const [imagePreview, setImagePreview] = useState<string | null>(item.image_path ? `/news-image/${item.image_path}` : null);
+  
+  const { data, setData, post, processing } = useForm({
+    _method: 'patch', // Required by Laravel/Inertia for updating with files
     title: item.title,
     summary: item.summary,
     media_outfit: item.media_outfit,
+    reporter: item.reporter || '',
     topic: item.topic,
     unit_involved: item.unit_involved,
     category: item.category,
     date: item.date,
-    url: item.url
+    url: item.url || '',
+    image: null as File | null,
   });
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setData('image', file);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    patch(`/news/${item.id}`, {
+    post(`/news/${item.id}`, {
+      forceFormData: true, // Forces multipart data so image is actually uploaded on save
       onSuccess: () => {
         toast.success('Report updated successfully');
         onClose();
@@ -170,25 +183,45 @@ function EditModal({ item, onClose }: { item: NewsItem; onClose: () => void }) {
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader><DialogTitle>Edit News Entry</DialogTitle></DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader><DialogTitle>Edit Intelligence Report</DialogTitle></DialogHeader>
         <form onSubmit={submit} className="space-y-4 py-4">
+          
+          {/* REPLACE IMAGE SECTION */}
+          <div className="p-4 bg-slate-50 border border-dashed border-slate-300 rounded-lg">
+            <Label className="mb-2 text-slate-700 font-bold">Replace Screenshot (Optional)</Label>
+            {imagePreview ? (
+              <div className="relative inline-block mt-2">
+                <img src={imagePreview} alt="Preview" className="h-32 rounded-md shadow border border-slate-200 object-cover" />
+                <button type="button" onClick={() => { setImagePreview(null); setData('image', null); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow hover:bg-red-600 transition-colors"><X className="size-4" /></button>
+              </div>
+            ) : (
+              <Input type="file" accept="image/*" onChange={handleImageChange} className="bg-white mt-2 cursor-pointer" />
+            )}
+            <p className="text-xs text-gray-400 mt-2">Upload a new image to replace the current one.</p>
+          </div>
+
           <div className="space-y-2">
-            <Label>Title</Label>
+            <Label>Headline / Title</Label>
             <Input value={data.title} onChange={e => setData('title', e.target.value)} required />
           </div>
           <div className="space-y-2">
             <Label>Summary</Label>
             <Textarea value={data.summary} onChange={e => setData('summary', e.target.value)} rows={3} required />
           </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Source</Label>
-              <Select value={data.media_outfit} onValueChange={v => setData('media_outfit', v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{newsSources.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-              </Select>
+              <Input value={data.media_outfit} onChange={e => setData('media_outfit', e.target.value)} required />
             </div>
+            <div className="space-y-2">
+              <Label>Reporter Name</Label>
+              <Input value={data.reporter} onChange={e => setData('reporter', e.target.value)} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Category</Label>
               <Select value={data.category} onValueChange={v => setData('category', v)}>
@@ -200,10 +233,15 @@ function EditModal({ item, onClose }: { item: NewsItem; onClose: () => void }) {
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2">
+              <Label>News Link (URL)</Label>
+              <Input value={data.url} onChange={e => setData('url', e.target.value)} />
+            </div>
           </div>
+
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={processing} className="bg-[#7B1E1E]">Save Changes</Button>
+            <Button type="submit" disabled={processing} className="bg-[#7B1E1E]">Save All Changes</Button>
           </DialogFooter>
         </form>
       </DialogContent>

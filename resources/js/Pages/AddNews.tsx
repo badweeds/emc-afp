@@ -8,7 +8,7 @@ import { Textarea } from '@/Components/ui/textarea';
 import { Button } from '@/Components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import { toast } from 'sonner';
-import { PlusCircle, Sparkles, Loader2, Save, Image as ImageIcon, X } from 'lucide-react';
+import { PlusCircle, Sparkles, Loader2, Save, X } from 'lucide-react';
 import axios from 'axios';
 
 const militaryUnits = [
@@ -20,15 +20,9 @@ const militaryUnits = [
 ];
 
 const mediaSources = {
-  Local: [
-    "Mindanao Times", "RMN DXDC 621 Davao", "SunStar Davao", "News Fort", "Bombo Radyo Davao", "PTV Davao", "Radyo Pilipinas Davao", "Edge Davao", "MDDN", "Mindanao Today", "MindaNews", "Bombo Radyo CDO", "SunStar Zamboanga", "CIO Davao City", "SunStar CDO", "Radyo Pilipinas Butuan", "Mindanao Gold Star Daily", "Bombo Radyo Butuan", "Brigada News Agusan", "RMN Malaybalay", "Mindanao Journal", "Superbalita Davao", "Mindanao Examiner", "Brigada News Gensan", "Brigada News CDO", "Brigada News Butuan", "Central Minda Newswatch", "News NOW", "PIA Caraga Region", "PIA Davao Region", "RPN DXKO CDO", "Davao Today", "NDBC News", "CDO Today", "Bombo Radyo Iloilo", "One Mindanao", "PLN Media", "Radyo Bandera Iloilo", "Watchmen Daily Journal", "RPN"
-  ],
-  National: [
-    "PNA", "PIA", "Manila Bulletin", "Kalinaw News", "Newsline Philippines", "Philippine Daily Inquirer", "The Manila Times", "Rappler", "The Philippine Star", "SMNI News", "PRWC", "Daily Tribune", "GMA News", "ABS-CBN News", "DZAR 1026", "Business Mirror", "Bombo Radyo PH", "Malaya Business Insight", "Manila Standard", "People's Tonight", "Remate", "Abante", "Global Daily Mirror", "RMN Manila", "Balita", "CNN Philippines", "Kidlat News Channel", "Net25 News", "One News", "PTV", "Radyo Agila", "Radyo Inquirer", "Journal News Online", "Dailymotion", "Filipino News", "PageOne PH", "Radyo Pilipinas", "Radyo Pilipinas Manila", "News 5", "ANC", "Brigada News PH", "Bulgar Online", "DWDD", "DZRH", "Radyo Natin Nationwide", "Tempo", "UNTV News and Rescue", "Maharlika TV", "Super Radyo DZBB"
-  ],
-  International: [
-    "News Beezer", "Benar News", "Republic Asia Media", "News 360", "Reuters", "US News"
-  ]
+  Local: ["Mindanao Times", "RMN DXDC 621 Davao", "SunStar Davao", "News Fort", "Bombo Radyo Davao", "PTV Davao", "Radyo Pilipinas Davao", "Edge Davao", "MDDN", "Mindanao Today", "MindaNews", "Bombo Radyo CDO", "SunStar Zamboanga", "CIO Davao City", "SunStar CDO", "Radyo Pilipinas Butuan", "Mindanao Gold Star Daily", "Bombo Radyo Butuan", "Brigada News Agusan", "RMN Malaybalay", "Mindanao Journal", "Superbalita Davao", "Mindanao Examiner", "Brigada News Gensan", "Brigada News CDO", "Brigada News Butuan", "Central Minda Newswatch", "News NOW", "PIA Caraga Region", "PIA Davao Region", "RPN DXKO CDO", "Davao Today", "NDBC News", "CDO Today", "Bombo Radyo Iloilo", "One Mindanao", "PLN Media", "Radyo Bandera Iloilo", "Watchmen Daily Journal", "RPN"],
+  National: ["PNA", "PIA", "Manila Bulletin", "Kalinaw News", "Newsline Philippines", "Philippine Daily Inquirer", "The Manila Times", "Rappler", "The Philippine Star", "SMNI News", "PRWC", "Daily Tribune", "GMA News", "ABS-CBN News", "DZAR 1026", "Business Mirror", "Bombo Radyo PH", "Malaya Business Insight", "Manila Standard", "People's Tonight", "Remate", "Abante", "Global Daily Mirror", "RMN Manila", "Balita", "CNN Philippines", "Kidlat News Channel", "Net25 News", "One News", "PTV", "Radyo Agila", "Radyo Inquirer", "Journal News Online", "Dailymotion", "Filipino News", "PageOne PH", "Radyo Pilipinas", "Radyo Pilipinas Manila", "News 5", "ANC", "Brigada News PH", "Bulgar Online", "DWDD", "DZRH", "Radyo Natin Nationwide", "Tempo", "UNTV News and Rescue", "Maharlika TV", "Super Radyo DZBB"],
+  International: ["News Beezer", "Benar News", "Republic Asia Media", "News 360", "Reuters", "US News"]
 };
 
 export default function AddNews() {
@@ -42,6 +36,7 @@ export default function AddNews() {
     scope: '', 
     media_outfit: '',
     custom_media_outfit: '', 
+    reporter: '', // ADDED REPORTER
     topic: '',
     unit_involved: '',
     category: '', 
@@ -57,20 +52,23 @@ export default function AddNews() {
 
   const handleAIAnalysis = async () => {
     if (!rawContent) {
-      toast.error("Please paste the article text first!");
+      toast.error("Please paste the article details first!");
       return;
     }
     setIsAnalyzing(true);
-    toast.info("AI Intelligence is analyzing the news...");
+    toast.info("AI Intelligence is analyzing the inputs...");
     
     try {
       const response = await axios.post('/analyze-news', { content: rawContent });
       setData(prev => ({
         ...prev,
-        summary: response.data.summary || '',
-        category: response.data.category || ''
+        title: response.data.title || prev.title,
+        summary: response.data.summary || prev.summary,
+        category: response.data.category || prev.category,
+        reporter: response.data.reporter || prev.reporter,
+        url: response.data.url || prev.url
       }));
-      toast.success("AI Analysis Complete!");
+      toast.success("AI Auto-Fill Complete! You can review and edit.");
     } catch (error) {
       toast.error("AI Analysis failed. Please check your API Key and internet connection.");
     } finally {
@@ -89,7 +87,7 @@ export default function AddNews() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     post('/news', {
-      forceFormData: true, // EXTREMELY IMPORTANT: Ensures the image file is actually sent as multipart/form-data
+      forceFormData: true,
       onSuccess: () => {
         toast.success('News saved successfully!');
         reset();
@@ -100,14 +98,10 @@ export default function AddNews() {
   };
 
   const currentMediaList = data.scope ? mediaSources[data.scope as keyof typeof mediaSources] : [];
-
-  // Reusable styling class for Dropdown Items to match the Logo (Maroon Hover)
   const dropdownItemClass = "text-slate-800 cursor-pointer focus:bg-[#7B1E1E] focus:text-white font-medium py-2";
 
   return (
-    <AuthenticatedLayout
-      header={<h2 className="font-semibold text-xl text-slate-800 leading-tight">Add Intelligence Report</h2>}
-    >
+    <AuthenticatedLayout header={<h2 className="font-semibold text-xl text-slate-800 leading-tight">Add Intelligence Report</h2>}>
       <Head title="Add News - EMC" />
 
       <div className="max-w-6xl mx-auto space-y-6">
@@ -121,9 +115,9 @@ export default function AddNews() {
           </CardHeader>
           <CardContent className="pt-4 space-y-4">
             <div className="space-y-2">
-              <Label className="text-slate-700 font-bold">Paste Full Article Text Here</Label>
+              <Label className="text-slate-700 font-bold">Paste Full Details Here (URL, Reporter, Article Text)</Label>
               <Textarea 
-                placeholder="Paste news text here for AI to summarize..."
+                placeholder="Paste news text, link, and reporter name here. AI will extract and sort it into the fields below..."
                 className="min-h-[120px] bg-slate-50 border-slate-300 text-slate-800 focus:border-[#1E293B] focus:ring-[#1E293B]"
                 value={rawContent}
                 onChange={(e) => setRawContent(e.target.value)}
@@ -171,8 +165,8 @@ export default function AddNews() {
                 </div>
               </div>
 
-              {/* Media Selection */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-5 bg-slate-50 rounded-lg border border-slate-200">
+              {/* Media Selection & Reporter */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-5 bg-slate-50 rounded-lg border border-slate-200">
                 <div className="space-y-2">
                   <Label className="text-slate-700 font-bold">Media Scope *</Label>
                   <Select value={data.scope} onValueChange={(val) => { setData('scope', val); setData('media_outfit', ''); }}>
@@ -198,10 +192,16 @@ export default function AddNews() {
 
                 {data.media_outfit === 'Others' && (
                   <div className="space-y-2">
-                    <Label className="text-slate-700 font-bold">Specify Media Name *</Label>
+                    <Label className="text-slate-700 font-bold">Specify Media *</Label>
                     <Input value={data.custom_media_outfit} onChange={e => setData('custom_media_outfit', e.target.value)} required className="border-slate-300 text-slate-900 bg-white focus:border-[#7B1E1E] focus:ring-[#7B1E1E]" />
                   </div>
                 )}
+                
+                {/* NEW REPORTER FIELD */}
+                <div className="space-y-2">
+                  <Label className="text-slate-700 font-bold">Reporter Name</Label>
+                  <Input value={data.reporter} onChange={e => setData('reporter', e.target.value)} placeholder="e.g. John Doe" className="border-slate-300 text-slate-900 bg-white focus:border-[#7B1E1E] focus:ring-[#7B1E1E]" />
+                </div>
               </div>
 
               {/* Unit & Sentiment */}
