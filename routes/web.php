@@ -4,7 +4,7 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http; // ADDED FOR AI API
+use Illuminate\Support\Facades\Http; 
 use App\Models\NewsArticle;
 use Inertia\Inertia;
 use Maatwebsite\Excel\Facades\Excel;
@@ -37,7 +37,8 @@ Route::get('/dashboard', function () {
             'neutral' => NewsArticle::where('category', 'Neutral')->count(),
             'unfavorable' => NewsArticle::where('category', 'Unfavorable')->count(),
         ],
-        'recentNews' => NewsArticle::orderBy('date', 'desc')->limit(5)->get()
+        'recentNews' => NewsArticle::orderBy('date', 'desc')->limit(5)->get(),
+        'carouselNews' => NewsArticle::whereNotNull('image_path')->orderBy('date', 'desc')->limit(10)->get()
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
@@ -100,7 +101,6 @@ Route::middleware('auth')->group(function () {
             $validated['image_path'] = $request->file('image')->store('news_images', 'public');
         }
 
-        // Remove the file object from array before passing to database
         unset($validated['image']);
 
         NewsArticle::create($validated);
@@ -166,12 +166,11 @@ Route::get('/export/docx', function (Request $request) {
     
     $section->addTextBreak(1);
 
-    // UNIFIED TABLE (CONNECTED BORDERS)
+    // UNIFIED TABLE
     $styleTable = ['borderSize' => 6, 'borderColor' => '000000', 'cellMargin' => 80];
     $phpWord->addTableStyle('MilitaryTable', $styleTable);
     $table = $section->addTable('MilitaryTable');
     
-    // Blue Rows
     $table->addRow();
     $cellH1 = $table->addCell(10000, ['gridSpan' => 3, 'bgColor' => '0000FF']);
     $cellH1->addText("Daily News Monitoring", ['name' => 'Arial', 'size' => 12, 'bold' => true, 'color' => 'FFFFFF'], ['alignment' => Jc::LEFT, 'spaceAfter' => 0]);
@@ -181,7 +180,6 @@ Route::get('/export/docx', function (Request $request) {
     $timeRange = "1700H " . date('d', strtotime($from)) . " – 1700H " . date('d F Y', strtotime($to));
     $cellH2->addText($timeRange, ['name' => 'Arial', 'size' => 12, 'bold' => true, 'color' => 'FFFFFF'], ['alignment' => Jc::LEFT, 'spaceAfter' => 0]);
 
-    // NR / TITLE / PUBLISHER
     $table->addRow();
     $table->addCell(1000)->addText("PAGE\nNR", ['name' => 'Arial', 'bold' => true, 'size' => 10], ['alignment' => Jc::CENTER, 'spaceAfter' => 0]);
     $table->addCell(6500)->addText("TITLE / SUMMARY / LINK", ['name' => 'Arial', 'bold' => true, 'size' => 10], ['alignment' => Jc::CENTER, 'spaceAfter' => 0]);
@@ -199,7 +197,6 @@ Route::get('/export/docx', function (Request $request) {
         $table->addCell(2500)->addText($item->media_outfit, ['name' => 'Arial', 'bold' => true, 'size' => 10], ['spaceAfter' => 0]);
     }
 
-    // SIGNATURES
     $section->addTextBreak(2);
     $sigTable = $section->addTable();
     $sigTable->addRow();
@@ -223,16 +220,25 @@ Route::get('/export/docx', function (Request $request) {
     return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
 })->middleware(['auth']);
 
-// YEARLY EXCEL
 Route::get('/export/excel', function () {
     return Excel::download(new NewsExport, 'PIO_EMC_Yearly_News_Data.xlsx');
 })->middleware(['auth']);
 
-// --- MISSING PROFILE ROUTES ADDED HERE ---
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+
+
+// --- 5. THE ULTIMATE WINDOWS IMAGE FIX ---
+// We use a custom URL "/news-image/" instead of "/storage/" to completely bypass the Windows blocking issue.
+Route::get('/news-image/{path}', function ($path) {
+    $filePath = storage_path('app/public/' . $path);
+    if (!file_exists($filePath)) {
+        abort(404);
+    }
+    return response()->file($filePath);
+})->where('path', '.*');
 
 require __DIR__.'/auth.php';
