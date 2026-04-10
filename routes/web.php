@@ -98,7 +98,9 @@ Route::middleware('auth')->group(function () {
 
         // Handle Image Upload securely
         if ($request->hasFile('image')) {
-            $validated['image_path'] = $request->file('image')->store('news_images', 'public');
+            $path = $request->file('image')->store('news_images', 'public');
+            // THE WINDOWS FIX: Force forward slashes before saving to the database
+            $validated['image_path'] = str_replace('\\', '/', $path);
         }
 
         unset($validated['image']);
@@ -231,13 +233,17 @@ Route::middleware('auth')->group(function () {
 });
 
 
-// --- 5. THE ULTIMATE WINDOWS IMAGE FIX ---
-// We use a custom URL "/news-image/" instead of "/storage/" to completely bypass the Windows blocking issue.
+// --- 5. THE ULTIMATE WINDOWS IMAGE FIX (WITH DEBUGGER) ---
 Route::get('/news-image/{path}', function ($path) {
-    $filePath = storage_path('app/public/' . $path);
+    // Clean the path just in case old database entries have backslashes
+    $cleanPath = str_replace('\\', '/', $path);
+    $filePath = storage_path('app/public/' . $cleanPath);
+    
     if (!file_exists($filePath)) {
-        abort(404);
+        // If it fails, this will print text to your screen telling us EXACTLY where it looked
+        dd("DEBUG ERROR: The image does not exist at this exact folder location: " . $filePath);
     }
+    
     return response()->file($filePath);
 })->where('path', '.*');
 

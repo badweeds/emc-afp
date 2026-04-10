@@ -89,6 +89,7 @@ export default function AddNews() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     post('/news', {
+      forceFormData: true, // EXTREMELY IMPORTANT: Ensures the image file is actually sent as multipart/form-data
       onSuccess: () => {
         toast.success('News saved successfully!');
         reset();

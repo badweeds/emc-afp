@@ -145,13 +145,13 @@ export default function Dashboard({ auth, stats, recentNews, carouselNews }: any
                             }
                         }}
                       >
-                        {/* THE FIX: Using Absolute URL bypassing Vite! */}
+                        {/* THE FIX: Using your custom web.php route and the correct 'image_path' column! */}
                         <img 
-                          src={news.image_url} 
+                          src={`/news-image/${news.image_path}`} 
                           alt={news.title}
                           className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                           onError={(e) => {
-                             // If it STILL fails, it replaces the broken icon with a clean placeholder so your dashboard stays beautiful.
+                             // If it STILL fails, it replaces the broken icon with a clean placeholder
                              e.currentTarget.src = "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=600&q=80"; 
                           }}
                         />
