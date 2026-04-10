@@ -52,36 +52,51 @@ Route::middleware('auth')->group(function () {
     Route::post('/analyze-news', function (Request $request) {
         $request->validate(['content' => 'required|string']);
 
-        $apiKey = env('GEMINI_API_KEY');
+        // Force fallback to the exact working API key you provided
+        $apiKey = env('GEMINI_API_KEY', 'AIzaSyBAlvlCHm5ZSt9-jp8y6S4Yaoj5XGfCaS4');
         
         $prompt = 'You are a military intelligence analyst. Read the following pasted text (which may contain a news article, URL, reporter name, etc.). 
-        Extract the following details and output ONLY a valid JSON object matching these exact keys:
-        1. "summary": A professional, concise 2-sentence summary of the news.
-        2. "category": Sentiment towards the military/government. Exactly one of: "Favorable", "Neutral", "Unfavorable".
-        3. "title": The headline of the article (or generate one if missing).
-        4. "reporter": The name of the reporter/author (or empty string if not found).
-        5. "url": Any website link found in the text (or empty string if not found).
+        Extract the following details and output ONLY a valid JSON object matching these exact keys WITHOUT any markdown formatting:
+        {
+            "summary": "A professional, concise 2-sentence summary of the news.",
+            "category": "Sentiment towards the military/government. Exactly one of: Favorable, Neutral, Unfavorable",
+            "title": "The headline of the article (or generate one if missing)",
+            "reporter": "The name of the reporter/author (or empty string if not found)",
+            "url": "Any website link found in the text (or empty string if not found)"
+        }
         
         Text: ' . $request->content;
 
-        $response = Http::withHeaders([
-            'Content-Type' => 'application/json',
-        ])->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$apiKey}", [
-            'contents' => [
-                ['parts' => [['text' => $prompt]]]
-            ]
-        ]);
+        try {
+            // Updated endpoint to match your working cURL command and bypass SSL
+            $response = Http::withoutVerifying()->withHeaders([
+                'Content-Type' => 'application/json',
+                'X-goog-api-key' => $apiKey // Passing key via header like your cURL command
+            ])->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent", [
+                'contents' => [
+                    ['parts' => [['text' => $prompt]]]
+                ]
+            ]);
 
-        if ($response->successful()) {
-            $result = $response->json();
-            $aiText = $result['candidates'][0]['content']['parts'][0]['text'] ?? '';
-            
-            // Clean the response to ensure it's pure JSON
-            $aiText = str_replace(['```json', '```'], '', $aiText);
-            return response()->json(json_decode(trim($aiText), true));
+            if ($response->successful()) {
+                $result = $response->json();
+                $aiText = $result['candidates'][0]['content']['parts'][0]['text'] ?? '';
+                
+                // Force clean the response
+                $aiText = str_replace(['```json', '```'], '', $aiText);
+                $decoded = json_decode(trim($aiText), true);
+
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    return response()->json($decoded);
+                } else {
+                    return response()->json(['error' => 'AI returned malformed data.'], 500);
+                }
+            }
+
+            return response()->json(['error' => 'API Connection Failed: ' . $response->body()], 500);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Server Error: ' . $e->getMessage()], 500);
         }
-
-        return response()->json(['error' => 'AI Analysis failed.'], 500);
     });
 
     // --- SAVE NEWS ENTRY ---
@@ -90,20 +105,18 @@ Route::middleware('auth')->group(function () {
             'title' => 'required', 
             'summary' => 'required', 
             'media_outfit' => 'required',
-            'reporter' => 'nullable|string', // Reporter field added
+            'reporter' => 'nullable|string', 
             'topic' => 'required', 
             'unit_involved' => 'required', 
             'category' => 'required',
             'date' => 'required', 
             'url' => 'nullable|url',
             'scope' => 'nullable|string',
-            'image' => 'nullable|image|max:5120' // 5MB Max for Screenshots
+            'image' => 'nullable|image|max:5120' 
         ]);
 
-        // Handle Image Upload securely
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('news_images', 'public');
-            // THE WINDOWS FIX: Force forward slashes before saving to the database
             $validated['image_path'] = str_replace('\\', '/', $path);
         }
 
@@ -114,7 +127,6 @@ Route::middleware('auth')->group(function () {
     });
 
     // --- UPDATE NEWS ENTRY (HANDLES IMAGE REPLACEMENT) ---
-    // NOTE: Inertia uses POST with _method=patch for file uploads.
     Route::post('/news/{newsArticle}', function (Request $request, NewsArticle $newsArticle) {
         $validated = $request->validate([
             'title' => 'required', 
@@ -130,7 +142,6 @@ Route::middleware('auth')->group(function () {
             'image' => 'nullable|image|max:5120'
         ]);
 
-        // If a new image is uploaded, process it and update the path
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('news_images', 'public');
             $validated['image_path'] = str_replace('\\', '/', $path);
@@ -224,7 +235,6 @@ Route::get('/export/docx', function (Request $request) {
         if($item->url) {
             $cell->addText($item->url, ['name' => 'Arial', 'size' => 8, 'color' => '0000FF', 'underline' => 'single'], ['spaceAfter' => 0]);
         }
-        // Updated to show Reporter alongside Media Outfit
         $publisherAuthor = $item->media_outfit . ($item->reporter ? "\n" . $item->reporter : "");
         $table->addCell(2500)->addText($publisherAuthor, ['name' => 'Arial', 'bold' => true, 'size' => 10], ['spaceAfter' => 0]);
     }
