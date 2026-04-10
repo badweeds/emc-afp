@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/Components/ui/button';
 import { NewsModal } from '@/Components/NewsModal';
 
-// Import the Carousel components from your ui folder
+// Import the Carousel components
 import {
   Carousel,
   CarouselContent,
@@ -22,11 +22,10 @@ import {
 export default function Dashboard({ auth, stats, recentNews, carouselNews }: any) {
   const [selectedNews, setSelectedNews] = useState<any | null>(null);
 
-  // Updated to the new Tactical Palette
   const riskData = [
-    { name: 'Favorable', value: stats?.favorable || 0, fill: '#1B5E20' }, // Tactical Green
-    { name: 'Neutral', value: stats?.neutral || 0, fill: '#424242' },     // Slate Grey
-    { name: 'Unfavorable', value: stats?.unfavorable || 0, fill: '#DC2626' }, // Alert Red
+    { name: 'Favorable', value: stats?.favorable || 0, fill: '#1B5E20' }, 
+    { name: 'Neutral', value: stats?.neutral || 0, fill: '#424242' },     
+    { name: 'Unfavorable', value: stats?.unfavorable || 0, fill: '#DC2626' }, 
   ];
 
   return (
@@ -37,7 +36,6 @@ export default function Dashboard({ auth, stats, recentNews, carouselNews }: any
       
       <div className="space-y-6 max-w-7xl mx-auto pb-10">
         
-        {/* Header Section */}
         <div className="flex justify-between items-end">
           <div>
             <h1 className="text-3xl font-bold text-[#1A237E] tracking-tight">Dashboard</h1>
@@ -53,7 +51,6 @@ export default function Dashboard({ auth, stats, recentNews, carouselNews }: any
           </div>
         </div>
 
-        {/* Stat Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard title="Total Reports" value={stats?.total || 0} icon={Newspaper} color="#1A237E" />
           <StatCard title="Favorable" value={stats?.favorable || 0} icon={Shield} color="#1B5E20" />
@@ -62,7 +59,6 @@ export default function Dashboard({ auth, stats, recentNews, carouselNews }: any
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Sentiment Distribution */}
           <Card className="shadow-md border-t-4 border-t-[#1A237E] bg-white">
             <CardHeader>
               <CardTitle className="text-sm font-bold uppercase tracking-wider text-gray-500">Sentiment Distribution</CardTitle>
@@ -84,7 +80,6 @@ export default function Dashboard({ auth, stats, recentNews, carouselNews }: any
             </CardContent>
           </Card>
 
-          {/* Commander's Briefing */}
           <Card className="shadow-md border-l-4 border-l-[#FBC02D] flex flex-col justify-between bg-white">
             <CardHeader>
               <CardTitle className="text-[#1A237E] text-lg font-bold flex items-center gap-2">
@@ -115,7 +110,7 @@ export default function Dashboard({ auth, stats, recentNews, carouselNews }: any
           </Card>
         </div>
 
-        {/* 10-PICTURE FEATURED NEWS CAROUSEL */}
+        {/* FEATURED VISUAL REPORTS */}
         <Card className="shadow-lg overflow-hidden border-t-4 border-t-[#FBC02D] bg-white">
           <CardHeader className="bg-slate-50/80 border-b border-slate-100">
             <CardTitle className="text-[#1A237E] font-bold uppercase tracking-wider flex items-center gap-2">
@@ -150,11 +145,15 @@ export default function Dashboard({ auth, stats, recentNews, carouselNews }: any
                             }
                         }}
                       >
-                        {/* THE FIX IS HERE: Changed /storage/ to /news-image/ */}
+                        {/* THE FIX: Using Absolute URL bypassing Vite! */}
                         <img 
-                          src={`/news-image/${news.image_path}`} 
+                          src={news.image_url} 
                           alt={news.title}
                           className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                          onError={(e) => {
+                             // If it STILL fails, it replaces the broken icon with a clean placeholder so your dashboard stays beautiful.
+                             e.currentTarget.src = "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=600&q=80"; 
+                          }}
                         />
                         
                         <div className="absolute inset-0 bg-gradient-to-t from-[#1A237E]/95 via-[#1A237E]/40 to-transparent" />
