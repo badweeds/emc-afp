@@ -53,7 +53,7 @@ export default function AddNews() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
-  const { data, setData, post, processing, reset, transform } = useForm({
+  const { data, setData, post, processing, reset, transform, errors } = useForm({
     title: '',
     summary: '',
     scope: '', 
@@ -84,8 +84,7 @@ export default function AddNews() {
     try {
       const response = await axios.post('/analyze-news', { content: rawContent });
       
-      // Safely map Media Outfit: if AI finds a media source but it's not in the dropdown, switch to "Others"
-      const aiScope = response.data.scope || prev.scope;
+      const aiScope = response.data.scope || data.scope;
       const aiMedia = response.data.media_outfit || '';
       const allKnownSources = [...mediaSources.Local, ...mediaSources.National, ...mediaSources.International];
       
@@ -112,8 +111,10 @@ export default function AddNews() {
         date: response.data.date || prev.date,
       }));
       toast.success("AI Auto-Fill Complete! All relevant fields have been populated.");
-    } catch (error) {
-      toast.error("AI Analysis failed. Please check your API Key and internet connection.");
+    } catch (error: any) {
+      // THE FIX: Grab the EXACT error message sent by the Laravel Backend!
+      const actualError = error.response?.data?.error || error.message || "Unknown server error.";
+      toast.error(`AI Analysis Failed: ${actualError}`, { duration: 8000 });
     } finally {
       setIsAnalyzing(false);
     }
@@ -137,6 +138,11 @@ export default function AddNews() {
         setRawContent('');
         setImagePreview(null);
       },
+      // THE FIX: Show a clear error popup if validation fails silently!
+      onError: (err) => {
+        const errorMessages = Object.values(err).join(' | ');
+        toast.error(`Failed to Save: ${errorMessages}`);
+      }
     });
   };
 
@@ -194,6 +200,7 @@ export default function AddNews() {
                 ) : (
                   <Input type="file" accept="image/*" onChange={handleImageChange} className="bg-white mt-2 cursor-pointer text-slate-600 border-slate-300" />
                 )}
+                {errors.image && <p className="text-red-500 text-xs mt-1">{errors.image}</p>}
               </div>
 
               {/* Title & Summary */}
@@ -201,10 +208,12 @@ export default function AddNews() {
                 <div className="space-y-2">
                   <Label className="text-slate-700 font-bold">Headline / Title *</Label>
                   <Input value={data.title} onChange={e => setData('title', e.target.value)} required className="border-slate-300 text-slate-900 bg-white focus:border-[#7B1E1E] focus:ring-[#7B1E1E]" />
+                  {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label className="text-slate-700 font-bold">Executive Summary *</Label>
                   <Textarea rows={3} value={data.summary} onChange={e => setData('summary', e.target.value)} required className="border-slate-300 text-slate-900 bg-white focus:border-[#7B1E1E] focus:ring-[#7B1E1E]" />
+                  {errors.summary && <p className="text-red-500 text-xs mt-1">{errors.summary}</p>}
                 </div>
               </div>
 
@@ -220,6 +229,7 @@ export default function AddNews() {
                       <SelectItem value="International" className={dropdownItemClass}>International</SelectItem>
                     </SelectContent>
                   </Select>
+                  {errors.scope && <p className="text-red-500 text-xs mt-1">{errors.scope}</p>}
                 </div>
 
                 <div className="space-y-2">
@@ -231,6 +241,7 @@ export default function AddNews() {
                       <SelectItem value="Others" className="text-[#7B1E1E] font-bold cursor-pointer focus:bg-[#7B1E1E] focus:text-white py-2 border-t mt-1">Others (Manual Input)</SelectItem>
                     </SelectContent>
                   </Select>
+                  {errors.media_outfit && <p className="text-red-500 text-xs mt-1">{errors.media_outfit}</p>}
                 </div>
 
                 {data.media_outfit === 'Others' && (
@@ -256,9 +267,9 @@ export default function AddNews() {
                       {militaryUnits.map(unit => <SelectItem key={unit} value={unit} className={dropdownItemClass}>{unit}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                  {errors.unit_involved && <p className="text-red-500 text-xs mt-1">{errors.unit_involved}</p>}
                 </div>
                 
-                {/* THE NEW TOPIC DROPDOWN */}
                 <div className="space-y-2">
                   <Label className="text-slate-700 font-bold">Topic *</Label>
                   <Select value={data.topic} onValueChange={(val) => setData('topic', val)}>
@@ -267,6 +278,7 @@ export default function AddNews() {
                       {topicsList.map(topic => <SelectItem key={topic} value={topic} className={dropdownItemClass}>{topic}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                  {errors.topic && <p className="text-red-500 text-xs mt-1">{errors.topic}</p>}
                 </div>
 
                 <div className="space-y-2">
@@ -279,6 +291,7 @@ export default function AddNews() {
                       <SelectItem value="Unfavorable" className="text-red-700 cursor-pointer focus:bg-red-700 focus:text-white font-bold py-2">Unfavorable</SelectItem>
                     </SelectContent>
                   </Select>
+                  {errors.category && <p className="text-red-500 text-xs mt-1">{errors.category}</p>}
                 </div>
               </div>
 
@@ -287,10 +300,12 @@ export default function AddNews() {
                 <div className="space-y-2">
                   <Label className="text-slate-700 font-bold">Date *</Label>
                   <Input type="date" value={data.date} onChange={e => setData('date', e.target.value)} required className="border-slate-300 text-slate-900 bg-white focus:border-[#7B1E1E] focus:ring-[#7B1E1E]" />
+                  {errors.date && <p className="text-red-500 text-xs mt-1">{errors.date}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label className="text-slate-700 font-bold">News Link (URL)</Label>
-                  <Input type="url" value={data.url} onChange={e => setData('url', e.target.value)} placeholder="https://" className="border-slate-300 text-slate-900 bg-white focus:border-[#7B1E1E] focus:ring-[#7B1E1E]" />
+                  <Input type="text" value={data.url} onChange={e => setData('url', e.target.value)} placeholder="e.g. facebook.com/news" className="border-slate-300 text-slate-900 bg-white focus:border-[#7B1E1E] focus:ring-[#7B1E1E]" />
+                  {errors.url && <p className="text-red-500 text-xs mt-1">{errors.url}</p>}
                 </div>
               </div>
 

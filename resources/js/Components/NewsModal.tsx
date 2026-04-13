@@ -1,23 +1,24 @@
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from './ui/dialog';
-import { RiskBadge } from './RiskBadge'; // Ensure this component is updated to handle 'Favorable', etc.
-import { Badge } from './ui/badge';
-import { ExternalLink, Calendar, Link as LinkIcon, Building2 } from 'lucide-react';
+import React from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/Components/ui/dialog';
+import { Calendar, User, Building, Link as LinkIcon } from 'lucide-react';
+
+// We must map all the fields from your database to make sure TypeScript is happy
+interface NewsItem {
+  id?: number;
+  title: string;
+  summary: string;
+  media_outfit: string;
+  reporter: string | null;
+  topic: string;
+  unit_involved: string;
+  category: string;
+  url: string;
+  date: string;
+  image_path: string | null;
+}
 
 interface NewsModalProps {
-  news: {
-    title: string;
-    media_outfit: string;
-    summary: string;
-    category: string;
-    date: string;
-    url?: string;
-  };
+  news: NewsItem | null;
   open: boolean;
   onClose: () => void;
 }
@@ -27,77 +28,84 @@ export function NewsModal({ news, open, onClose }: NewsModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl bg-white">
-        <DialogHeader className="border-b pb-4">
-          <DialogTitle className="text-2xl font-bold text-[#1E293B] leading-tight">
-            {news.title}
-          </DialogTitle>
-          <DialogDescription className="flex flex-wrap items-center gap-3 pt-3">
-            {/* Category / Sentiment Badge */}
-            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${
-                news.category === 'Favorable' ? 'bg-green-100 text-green-700 border-green-200' :
-                news.category === 'Unfavorable' ? 'bg-red-100 text-red-700 border-red-200' : 
-                'bg-slate-100 text-slate-700 border-slate-200'
-            }`}>
-                {news.category}
+      {/* THE FIX: Changed max-w-2xl to max-w-4xl for a much wider, comfortable reading view.
+        Removed standard padding (p-0) so the image can touch the very top edges.
+      */}
+      <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto bg-white p-0 rounded-xl shadow-2xl border-0">
+        
+        {/* 1. Dynamic Image Banner (If an image exists, it goes right at the top!) */}
+        {news.image_path && (
+          <div className="w-full bg-slate-100 flex items-center justify-center overflow-hidden rounded-t-xl border-b border-slate-200">
+            <img 
+              src={`/news-image/${news.image_path}`} 
+              alt="News Clipping" 
+              className="w-full max-h-[400px] object-contain" 
+            />
+          </div>
+        )}
+
+        <div className="p-8 md:p-10">
+          
+          {/* 2. Top Badges (Topic, Sentiment, Unit) */}
+          <div className="flex flex-wrap gap-2 mb-6">
+            <span className="px-3 py-1 bg-slate-100 text-slate-700 text-xs font-bold rounded-md tracking-wide uppercase border border-slate-200">
+              {news.topic}
             </span>
-
-            <div className="flex items-center gap-1 text-slate-500 text-sm">
-              <Calendar className="size-3.5" />
-              {new Date(news.date).toLocaleDateString('en-US', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-              })}
-            </div>
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-6 mt-6">
-          {/* Media Outfit Section */}
-          <div className="flex gap-3">
-            <div className="p-2 bg-slate-100 rounded-lg h-fit">
-                <Building2 className="size-5 text-slate-600" />
-            </div>
-            <div>
-                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Media Outfit</h3>
-                <p className="text-lg font-semibold text-slate-700">{news.media_outfit}</p>
-            </div>
+            <span className={`px-3 py-1 text-xs font-bold rounded-md tracking-wide uppercase border ${
+              news.category === 'Favorable' ? 'bg-green-100 text-green-800 border-green-200' :
+              news.category === 'Unfavorable' ? 'bg-red-100 text-red-800 border-red-200' : 'bg-gray-100 text-gray-800 border-gray-200'
+            }`}>
+              {news.category} Sentiment
+            </span>
+            <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-md tracking-wide uppercase border border-blue-100">
+              {news.unit_involved}
+            </span>
           </div>
+          
+          {/* 3. Headline */}
+          <DialogHeader>
+            <DialogTitle className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-6 leading-tight">
+              {news.title}
+            </DialogTitle>
+            <DialogDescription className="hidden">Intelligence Report Details</DialogDescription>
+          </DialogHeader>
 
-          {/* Summary Section */}
-          <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Intelligence Summary</h3>
-            <p className="text-slate-700 leading-relaxed italic">
-              "{news.summary}"
-            </p>
-          </div>
-
-          {/* URL Section */}
-          {news.url && (
-            <div className="pt-4 border-t">
-              <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Original Source Link</h3>
-              <a 
-                href={news.url} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-[#7B1E1E] font-medium hover:underline group"
-              >
-                <LinkIcon className="size-4" />
-                <span className="truncate max-w-md">{news.url}</span>
-                <ExternalLink className="size-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+          {/* 4. Meta Information Bar (Source, Reporter, Date, Link) */}
+          <div className="flex flex-wrap gap-x-6 gap-y-3 text-sm text-slate-600 mb-8 pb-6 border-b border-slate-200">
+            <div className="flex items-center gap-2">
+                <Building className="size-4 text-[#7B1E1E]"/> 
+                <span className="font-bold text-slate-800">{news.media_outfit}</span>
+            </div>
+            {news.reporter && (
+                <div className="flex items-center gap-2">
+                    <User className="size-4 text-[#7B1E1E]"/> 
+                    <span className="font-medium">{news.reporter}</span>
+                </div>
+            )}
+            <div className="flex items-center gap-2">
+                <Calendar className="size-4 text-[#7B1E1E]"/> 
+                <span className="font-medium">{news.date}</span>
+            </div>
+            {news.url && (
+              <a href={news.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-blue-600 hover:text-blue-800 hover:underline font-medium transition-colors">
+                <LinkIcon className="size-4"/> <span>Original Source</span>
               </a>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
 
-        <div className="mt-8 flex justify-end">
-            <button 
-                onClick={onClose}
-                className="px-4 py-2 bg-slate-800 text-white rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors"
-            >
-                Close Briefing
-            </button>
+          {/* 5. Article Body (THE FIX: No grey boxes, no italics, perfect paragraphs) */}
+          <div className="text-lg text-slate-800 leading-relaxed space-y-5 tracking-wide">
+            {news.summary.split('\n').map((paragraph, idx) => {
+              const cleanParagraph = paragraph.trim();
+              if (!cleanParagraph) return null;
+              return (
+                <p key={idx} className="text-justify">
+                  {cleanParagraph}
+                </p>
+              );
+            })}
+          </div>
+
         </div>
       </DialogContent>
     </Dialog>

@@ -4,7 +4,6 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http; 
 use App\Models\NewsArticle;
 use Inertia\Inertia;
 use Maatwebsite\Excel\Facades\Excel;
@@ -14,12 +13,6 @@ use PhpOffice\PhpWord\PhpWord;
 use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\SimpleType\Jc;
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-*/
-
 Route::get('/', function () {
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
@@ -27,7 +20,6 @@ Route::get('/', function () {
     ]);
 });
 
-// 1. DASHBOARD
 Route::get('/dashboard', function () {
     return Inertia::render('Dashboard', [
         'stats' => [
@@ -41,62 +33,93 @@ Route::get('/dashboard', function () {
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-// 2. NEWS MANAGEMENT
 Route::middleware('auth')->group(function () {
     Route::get('/add-news', function () {
         return Inertia::render('AddNews');
     });
 
-    // --- SUPERCHARGED AI AUTO-ANALYZER ROUTE (WITH FULL DROPDOWN SUPPORT) ---
     Route::post('/analyze-news', function (Request $request) {
         $request->validate(['content' => 'required|string']);
 
-        $apiKey = env('GEMINI_API_KEY', 'AIzaSyBAlvlCHm5ZSt9-jp8y6S4Yaoj5XGfCaS4');
+        $apiKey = config('app.openrouter_api_key', env('OPENROUTER_API_KEY'));
         
-        $prompt = 'You are a military intelligence analyst. Read the following pasted text. 
-        Extract the details and output ONLY a valid JSON object matching these exact keys WITHOUT markdown formatting:
+        if (empty($apiKey)) {
+            return response()->json(['error' => 'OpenRouter API Key is missing from the .env file.'], 500);
+        }
+        
+        $localMedia = "Mindanao Times, RMN DXDC 621 Davao, SunStar Davao, News Fort, Bombo Radyo Davao, PTV Davao, Radyo Pilipinas Davao, Edge Davao, MDDN, Mindanao Today, MindaNews, Bombo Radyo CDO, SunStar Zamboanga, CIO Davao City, SunStar CDO, Radyo Pilipinas Butuan, Mindanao Gold Star Daily, Bombo Radyo Butuan, Brigada News Agusan, RMN Malaybalay, Mindanao Journal, Superbalita Davao, Mindanao Examiner, Brigada News Gensan, Brigada News CDO, Brigada News Butuan, Central Minda Newswatch, News NOW, PIA Caraga Region, PIA Davao Region, RPN DXKO CDO, Davao Today, NDBC News, CDO Today, Bombo Radyo Iloilo, One Mindanao, PLN Media, Radyo Bandera Iloilo, Watchmen Daily Journal, RPN";
+        $nationalMedia = "PNA, PIA, Manila Bulletin, Kalinaw News, Newsline Philippines, Philippine Daily Inquirer, The Manila Times, Rappler, The Philippine Star, SMNI News, PRWC, Daily Tribune, GMA News, ABS-CBN News, DZAR 1026, Business Mirror, Bombo Radyo PH, Malaya Business Insight, Manila Standard, People's Tonight, Remate, Abante, Global Daily Mirror, RMN Manila, Balita, CNN Philippines, Kidlat News Channel, Net25 News, One News, PTV, Radyo Agila, Radyo Inquirer, Journal News Online, Dailymotion, Filipino News, PageOne PH, Radyo Pilipinas, Radyo Pilipinas Manila, News 5, ANC, Brigada News PH, Bulgar Online, DWDD, DZRH, Radyo Natin Nationwide, Tempo, UNTV News and Rescue, Maharlika TV, Super Radyo DZBB";
+        $internationalMedia = "News Beezer, Benar News, Republic Asia Media, News 360, Reuters, US News";
+
+        $systemPrompt = 'You are an expert military intelligence analyst based in the Philippines (Davao Region). 
+        Extract the details from the user\'s text and output ONLY a valid JSON object matching these exact keys:
         {
-            "summary": "A professional, concise 2-sentence summary of the news.",
+            "summary": "The FULL, comprehensive body of the news article. Retain all original paragraphs, important details, and quotes. Do NOT summarize into 2 sentences. Preserve paragraph breaks using \n.",
             "category": "Sentiment towards the military/government. Exactly one of: Favorable, Neutral, Unfavorable",
             "title": "The headline of the article (or generate one if missing)",
             "reporter": "The name of the reporter/author (or empty string if not found)",
             "url": "Any website link found in the text (or empty string if not found)",
-            "scope": "Must be exactly one of: Local, National, International",
-            "media_outfit": "Name of the publisher/media outlet (e.g. Inquirer, Mindanao Times, SMNI, etc. Empty string if not found)",
+            "media_outfit": "CRITICAL: You MUST map the publisher EXACTLY to one of the names in the Local, National, or International lists provided below. Example: If you read \'Inquirer\', you MUST output \'Philippine Daily Inquirer\'. If you read \'SunStar\', you MUST output \'SunStar Davao\'. If you absolutely cannot find a match, output the name as it appears in the text.",
+            "scope": "Must be exactly one of: Local, National, International. Rule: If the media_outfit is in the Local List, scope MUST be Local. If in National List, scope MUST be National.",
             "unit_involved": "Must be exactly one of: Eastern Mindanao Command (EastMinCom) Headquarters, Naval Forces Eastern Mindanao (NFEM), Tactical Operations Group 10 (TOG 10), 4th Infantry Division (4ID), 10th Infantry Division (10ID)",
             "topic": "Determine the most relevant topic. Must be exactly one of: Accomplishment, Checkpoint Seizure, FRs Reconciliation, HADR Operations, CTG Mem Surrender, Surrender/Arms Cache, Encounter, Arms Cache, Culture of Security, Destabilization, NPA Dismantling, Unit Installation, E-CLIP Programs, NPA Ambush/Atrocity, Outreach Program, Commemoration, CSP, New Year\'s Call, POs Programs, New/Upgraded Facility, New Commander/Officer, Security Operations, Unit Visit, Blood Donation, Killed Soldier, Reservist Affairs, BGen Durante Case, Unit Anniversary, NPA Arrest, New Assets, CTG Mem Abduction, POs Issues/Concerns, Persona Non-Grata, Harassment by Troops, ITDS Sustainment, MILF Holding of Troops, Sportsfest, Troops Education, Camp Shooting, Drug Involvement, AFP Recruitment, Morale & Welfare, Soldier Recognition, Partners Engagement, Training/Exercise, Bomb/IED Retrieval, Spiritual Enhancement, BDP Project, Killed NPA Assitance, Chad Booc Death, NPA Condemnation, FCEMC Appointment, POC Engagements, GAD, Int\'l Military Visit, Youth Empowerment, Farewell Visit, Govt Official Killing, Insurgency-Free, Ex-Troops Monitoring, Campaign Plan, Peace Forum, Stakeholder Support, Stakeholder Visit, MOA/Partnership, Environmental Activity, Search Operation, Promotion, PAGs Update, Aerial/Artillery Bombing, Illegal Firearms, Pilgram Visit, Kidnapped Civilians, Transport Assistance, Security Update, Peace Rally, Symposium, CTG Monitoring, Civilian Killing, AOR Expansion, Fake Soldier, Event Participation, CORPAT, Illegal Mining, FB Page Hacking, Unit Recognition, Unit Send-Off, Bomb Explosion/Scare, Friendly Games, Smuggling Apprehension, PMA Examination, Extrajudicial Killings, Peace Monument, White Area Operations, Election Security, Stress Debriefing, New Soldiers, Ceasefire, Ramming Incident, Troop Accident",
             "date": "The date of the news article in YYYY-MM-DD format. If no date is found, leave blank."
         }
         
-        Text: ' . $request->content;
+        Local List: ' . $localMedia . '
+        National List: ' . $nationalMedia . '
+        International List: ' . $internationalMedia;
 
-        try {
-            $response = Http::withoutVerifying()->withHeaders([
-                'Content-Type' => 'application/json',
-                'X-goog-api-key' => $apiKey 
-            ])->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent", [
-                'contents' => [
-                    ['parts' => [['text' => $prompt]]]
-                ]
-            ]);
+        $payload = json_encode([
+            'model' => 'openai/gpt-4o-mini',
+            'response_format' => ['type' => 'json_object'],
+            'messages' => [
+                ['role' => 'system', 'content' => $systemPrompt],
+                ['role' => 'user', 'content' => 'Text to Analyze: ' . $request->content]
+            ]
+        ]);
 
-            if ($response->successful()) {
-                $result = $response->json();
-                $aiText = $result['candidates'][0]['content']['parts'][0]['text'] ?? '';
-                
-                $aiText = str_replace(['```json', '```'], '', $aiText);
-                $decoded = json_decode(trim($aiText), true);
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, "https://openrouter.ai/api/v1/chat/completions");
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+        
+        $headers = [
+            'Content-Type: application/json',
+            'Authorization: Bearer ' . $apiKey,
+            'HTTP-Referer: http://localhost',
+            'X-OpenRouter-Title: EMC Dashboard'
+        ];
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 
-                if (json_last_error() === JSON_ERROR_NONE) {
-                    return response()->json($decoded);
-                } else {
-                    return response()->json(['error' => 'AI returned malformed data.'], 500);
-                }
-            }
+        $response = curl_exec($ch);
+        $err = curl_error($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
 
-            return response()->json(['error' => 'API Connection Failed: ' . $response->body()], 500);
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Server Error: ' . $e->getMessage()], 500);
+        if ($err) {
+            return response()->json(['error' => 'cURL Error: ' . $err], 500);
+        }
+
+        $result = json_decode($response, true);
+        
+        if ($httpCode !== 200 || isset($result['error'])) {
+            $apiError = $result['error']['message'] ?? 'Unknown OpenRouter API Error';
+            return response()->json(['error' => "OpenRouter Error ($httpCode): $apiError"], 500);
+        }
+
+        $aiText = $result['choices'][0]['message']['content'] ?? '{}';
+        
+        $aiText = str_replace(['```json', '```'], '', $aiText);
+        $decoded = json_decode(trim($aiText), true);
+
+        if (json_last_error() === JSON_ERROR_NONE) {
+            return response()->json($decoded);
+        } else {
+            return response()->json(['error' => 'AI returned malformed data.'], 500);
         }
     });
 
@@ -110,7 +133,7 @@ Route::middleware('auth')->group(function () {
             'unit_involved' => 'required', 
             'category' => 'required',
             'date' => 'required', 
-            'url' => 'nullable|url',
+            'url' => 'nullable|string',
             'scope' => 'nullable|string',
             'image' => 'nullable|image|max:5120' 
         ]);
@@ -136,7 +159,7 @@ Route::middleware('auth')->group(function () {
             'unit_involved' => 'required', 
             'category' => 'required',
             'date' => 'required', 
-            'url' => 'nullable|url',
+            'url' => 'nullable|string',
             'scope' => 'nullable|string',
             'image' => 'nullable|image|max:5120'
         ]);
@@ -158,7 +181,6 @@ Route::middleware('auth')->group(function () {
     });
 });
 
-// 3. MONITORING, ANALYTICS, & REPORTS
 Route::get('/monitoring', function () {
     return Inertia::render('NewsMonitoring', ['news' => NewsArticle::orderBy('date', 'desc')->get()]);
 })->middleware(['auth']);
@@ -171,8 +193,7 @@ Route::get('/reports', function () {
     return Inertia::render('Reports', ['news' => NewsArticle::orderBy('date', 'desc')->get()]);
 })->middleware(['auth']);
 
-
-// --- 4. IDENTICAL DOCX EXPORT ---
+// --- PERFECTLY FORMATTED DOCX EXPORT ---
 Route::get('/export/docx', function (Request $request) {
     $from = $request->query('from');
     $to = $request->query('to');
@@ -180,9 +201,8 @@ Route::get('/export/docx', function (Request $request) {
     
     $phpWord = new PhpWord();
     $section = $phpWord->addSection();
-    $tight = ['spaceAfter' => 0, 'spaceBefore' => 0];
-
-    // COVER PAGE
+    
+    // --- 1. COVER PAGE ---
     $section->addTextBreak(2);
     $section->addText("TEAM EASTMINCOM", ['name' => 'Arial', 'size' => 36, 'bold' => true], ['alignment' => Jc::CENTER, 'spaceAfter' => 0]);
     $section->addTextBreak(1);
@@ -199,14 +219,13 @@ Route::get('/export/docx', function (Request $request) {
     
     $section->addPageBreak();
 
-    // TABLE OF CONTENTS HEADER
+    // --- 2. TABLE OF CONTENTS (SHORT SUMMARY) ---
     $section->addText("TABLE OF CONTENTS", ['name' => 'Arial', 'size' => 11, 'bold' => true], ['alignment' => Jc::CENTER, 'spaceAfter' => 0]);
     $redDate = "1700 " . date('d', strtotime($from)) . "- 1700 " . date('d F Y', strtotime($to));
     $section->addText($redDate, ['name' => 'Arial', 'size' => 12, 'bold' => true, 'color' => 'FF0000'], ['alignment' => Jc::CENTER, 'spaceAfter' => 0]);
     
     $section->addTextBreak(1);
 
-    // UNIFIED TABLE
     $styleTable = ['borderSize' => 6, 'borderColor' => '000000', 'cellMargin' => 80];
     $phpWord->addTableStyle('MilitaryTable', $styleTable);
     $table = $section->addTable('MilitaryTable');
@@ -227,15 +246,36 @@ Route::get('/export/docx', function (Request $request) {
 
     foreach ($news as $index => $item) {
         $table->addRow();
-        $table->addCell(1000)->addText($index + 1, ['name' => 'Arial'], ['alignment' => Jc::CENTER, 'spaceAfter' => 0]);
-        $cell = $table->addCell(6500);
-        $cell->addText($item->title, ['name' => 'Arial', 'bold' => true, 'size' => 10, 'color' => '1E3A8A'], ['spaceAfter' => 0]);
-        $cell->addText($item->summary, ['name' => 'Arial', 'size' => 9], ['spaceAfter' => 0]);
-        if($item->url) {
-            $cell->addText($item->url, ['name' => 'Arial', 'size' => 8, 'color' => '0000FF', 'underline' => 'single'], ['spaceAfter' => 0]);
+        
+        $table->addCell(1000)->addText($index + 1, ['name' => 'Arial', 'size' => 10], ['alignment' => Jc::CENTER, 'spaceAfter' => 0]);
+        
+        $cell2 = $table->addCell(6500);
+        $cell2->addText($item->title, ['name' => 'Arial', 'size' => 10], ['spaceAfter' => 100]); // Plain text title like the picture
+        
+        // THE FIX: Extract ONLY the very first paragraph for a small summary in the table
+        $paragraphs = explode("\n", $item->summary);
+        $firstParagraph = '';
+        foreach ($paragraphs as $p) {
+            $p = trim($p);
+            if (!empty($p)) {
+                $firstParagraph = $p;
+                break; // Stop after the first paragraph!
+            }
         }
-        $publisherAuthor = $item->media_outfit . ($item->reporter ? "\n" . $item->reporter : "");
-        $table->addCell(2500)->addText($publisherAuthor, ['name' => 'Arial', 'bold' => true, 'size' => 10], ['spaceAfter' => 0]);
+        
+        if (!empty($firstParagraph)) {
+            $cell2->addText($firstParagraph, ['name' => 'Arial', 'size' => 10], ['alignment' => Jc::BOTH, 'spaceAfter' => 100]);
+        }
+        
+        if($item->url) {
+            $cell2->addText($item->url, ['name' => 'Arial', 'size' => 9, 'color' => '0000FF', 'underline' => 'single'], ['spaceAfter' => 0]);
+        }
+
+        $cell3 = $table->addCell(2500);
+        $cell3->addText($item->media_outfit, ['name' => 'Arial', 'bold' => true, 'size' => 10], ['alignment' => Jc::CENTER, 'spaceAfter' => 0]);
+        if (!empty($item->reporter)) {
+            $cell3->addText($item->reporter, ['name' => 'Arial', 'size' => 9], ['alignment' => Jc::CENTER, 'spaceAfter' => 0]);
+        }
     }
 
     $section->addTextBreak(2);
@@ -252,6 +292,57 @@ Route::get('/export/docx', function (Request $request) {
     $c2->addTextBreak(2);
     $c2->addText("Ryann R Velez", ['name' => 'Arial', 'bold' => true], ['spaceAfter' => 0]);
     $c2->addText("MAJ    (Inf) PA", ['name' => 'Arial'], ['spaceAfter' => 0]);
+
+
+    // --- 3. FULL NEWS CLIPPINGS (WITH WRAPPED IMAGES) ---
+    $section->addPageBreak();
+
+    foreach ($news as $index => $item) {
+        
+        // 1. Print Number and Title (Bold)
+        $section->addText(($index + 1) . ". " . $item->title, ['name' => 'Arial', 'bold' => true, 'size' => 12], ['spaceBefore' => 200, 'spaceAfter' => 100]);
+
+        // 2. THE FIX: Image with "Square" Wrapping so text wraps to the right
+        if (!empty($item->image_path)) {
+            $imageLocation = storage_path('app/public/' . str_replace('\\', '/', $item->image_path));
+            
+            if (file_exists($imageLocation)) {
+                try {
+                    $section->addImage($imageLocation, [
+                        'width'         => 250, // Half page width
+                        'wrappingStyle' => 'square', // This forces text to wrap around it!
+                        'positioning'   => 'absolute',
+                        'posHorizontal' => 'left',
+                        'posHorizontalRel' => 'column',
+                        'posVerticalRel'  => 'line',
+                        'marginTop'       => 5,
+                        'marginRight'     => 10,
+                    ]);
+                } catch (\Exception $e) {
+                    // Fail silently if image is corrupted/unsupported so the report still generates
+                }
+            }
+        }
+
+        // 3. Print Media Outfit / Reporter (Optional, based on your screenshot you might not even want this here, but I kept it small)
+        $publisherAuthor = $item->media_outfit;
+        if (!empty($item->reporter)) {
+            $publisherAuthor .= " | " . $item->reporter;
+        }
+        $section->addText($publisherAuthor, ['name' => 'Arial', 'italic' => true, 'size' => 10, 'color' => '555555'], ['spaceAfter' => 100]);
+
+        // 4. Print the FULL body of the article (It will automatically wrap around the image)
+        $paragraphs = explode("\n", $item->summary);
+        foreach ($paragraphs as $p) {
+            $p = trim($p);
+            if (!empty($p)) {
+                $section->addText($p, ['name' => 'Arial', 'size' => 11], ['alignment' => Jc::BOTH, 'spaceAfter' => 100]);
+            }
+        }
+
+        // Add a clean break between articles
+        $section->addTextBreak(2);
+    }
 
     $objWriter = IOFactory::createWriter($phpWord, 'Word2007');
     $fileName = "EMC_News_Clippings_" . date('Y-m-d') . ".docx";
@@ -271,16 +362,12 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-
-// --- 5. THE ULTIMATE WINDOWS IMAGE FIX ---
 Route::get('/news-image/{path}', function ($path) {
     $cleanPath = str_replace('\\', '/', $path);
     $filePath = storage_path('app/public/' . $cleanPath);
-    
     if (!file_exists($filePath)) {
-        dd("DEBUG ERROR: The image does not exist at this exact folder location: " . $filePath);
+        abort(404);
     }
-    
     return response()->file($filePath);
 })->where('path', '.*');
 
