@@ -10,7 +10,6 @@ use Inertia\Inertia;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\NewsExport;
 
-// PHPWord classes for the identical military format
 use PhpOffice\PhpWord\PhpWord;
 use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\SimpleType\Jc;
@@ -42,36 +41,39 @@ Route::get('/dashboard', function () {
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-// 2. NEWS MANAGEMENT (ADD NEWS & AI INTEGRATION)
+// 2. NEWS MANAGEMENT
 Route::middleware('auth')->group(function () {
     Route::get('/add-news', function () {
         return Inertia::render('AddNews');
     });
 
-    // --- SUPERCHARGED AI AUTO-ANALYZER ROUTE ---
+    // --- SUPERCHARGED AI AUTO-ANALYZER ROUTE (WITH FULL DROPDOWN SUPPORT) ---
     Route::post('/analyze-news', function (Request $request) {
         $request->validate(['content' => 'required|string']);
 
-        // Force fallback to the exact working API key you provided
         $apiKey = env('GEMINI_API_KEY', 'AIzaSyBAlvlCHm5ZSt9-jp8y6S4Yaoj5XGfCaS4');
         
-        $prompt = 'You are a military intelligence analyst. Read the following pasted text (which may contain a news article, URL, reporter name, etc.). 
-        Extract the following details and output ONLY a valid JSON object matching these exact keys WITHOUT any markdown formatting:
+        $prompt = 'You are a military intelligence analyst. Read the following pasted text. 
+        Extract the details and output ONLY a valid JSON object matching these exact keys WITHOUT markdown formatting:
         {
             "summary": "A professional, concise 2-sentence summary of the news.",
             "category": "Sentiment towards the military/government. Exactly one of: Favorable, Neutral, Unfavorable",
             "title": "The headline of the article (or generate one if missing)",
             "reporter": "The name of the reporter/author (or empty string if not found)",
-            "url": "Any website link found in the text (or empty string if not found)"
+            "url": "Any website link found in the text (or empty string if not found)",
+            "scope": "Must be exactly one of: Local, National, International",
+            "media_outfit": "Name of the publisher/media outlet (e.g. Inquirer, Mindanao Times, SMNI, etc. Empty string if not found)",
+            "unit_involved": "Must be exactly one of: Eastern Mindanao Command (EastMinCom) Headquarters, Naval Forces Eastern Mindanao (NFEM), Tactical Operations Group 10 (TOG 10), 4th Infantry Division (4ID), 10th Infantry Division (10ID)",
+            "topic": "Determine the most relevant topic. Must be exactly one of: Accomplishment, Checkpoint Seizure, FRs Reconciliation, HADR Operations, CTG Mem Surrender, Surrender/Arms Cache, Encounter, Arms Cache, Culture of Security, Destabilization, NPA Dismantling, Unit Installation, E-CLIP Programs, NPA Ambush/Atrocity, Outreach Program, Commemoration, CSP, New Year\'s Call, POs Programs, New/Upgraded Facility, New Commander/Officer, Security Operations, Unit Visit, Blood Donation, Killed Soldier, Reservist Affairs, BGen Durante Case, Unit Anniversary, NPA Arrest, New Assets, CTG Mem Abduction, POs Issues/Concerns, Persona Non-Grata, Harassment by Troops, ITDS Sustainment, MILF Holding of Troops, Sportsfest, Troops Education, Camp Shooting, Drug Involvement, AFP Recruitment, Morale & Welfare, Soldier Recognition, Partners Engagement, Training/Exercise, Bomb/IED Retrieval, Spiritual Enhancement, BDP Project, Killed NPA Assitance, Chad Booc Death, NPA Condemnation, FCEMC Appointment, POC Engagements, GAD, Int\'l Military Visit, Youth Empowerment, Farewell Visit, Govt Official Killing, Insurgency-Free, Ex-Troops Monitoring, Campaign Plan, Peace Forum, Stakeholder Support, Stakeholder Visit, MOA/Partnership, Environmental Activity, Search Operation, Promotion, PAGs Update, Aerial/Artillery Bombing, Illegal Firearms, Pilgram Visit, Kidnapped Civilians, Transport Assistance, Security Update, Peace Rally, Symposium, CTG Monitoring, Civilian Killing, AOR Expansion, Fake Soldier, Event Participation, CORPAT, Illegal Mining, FB Page Hacking, Unit Recognition, Unit Send-Off, Bomb Explosion/Scare, Friendly Games, Smuggling Apprehension, PMA Examination, Extrajudicial Killings, Peace Monument, White Area Operations, Election Security, Stress Debriefing, New Soldiers, Ceasefire, Ramming Incident, Troop Accident",
+            "date": "The date of the news article in YYYY-MM-DD format. If no date is found, leave blank."
         }
         
         Text: ' . $request->content;
 
         try {
-            // Updated endpoint to match your working cURL command and bypass SSL
             $response = Http::withoutVerifying()->withHeaders([
                 'Content-Type' => 'application/json',
-                'X-goog-api-key' => $apiKey // Passing key via header like your cURL command
+                'X-goog-api-key' => $apiKey 
             ])->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent", [
                 'contents' => [
                     ['parts' => [['text' => $prompt]]]
@@ -82,7 +84,6 @@ Route::middleware('auth')->group(function () {
                 $result = $response->json();
                 $aiText = $result['candidates'][0]['content']['parts'][0]['text'] ?? '';
                 
-                // Force clean the response
                 $aiText = str_replace(['```json', '```'], '', $aiText);
                 $decoded = json_decode(trim($aiText), true);
 
@@ -99,7 +100,6 @@ Route::middleware('auth')->group(function () {
         }
     });
 
-    // --- SAVE NEWS ENTRY ---
     Route::post('/news', function (Request $request) {
         $validated = $request->validate([
             'title' => 'required', 
@@ -126,7 +126,6 @@ Route::middleware('auth')->group(function () {
         return redirect()->back();
     });
 
-    // --- UPDATE NEWS ENTRY (HANDLES IMAGE REPLACEMENT) ---
     Route::post('/news/{newsArticle}', function (Request $request, NewsArticle $newsArticle) {
         $validated = $request->validate([
             'title' => 'required', 
@@ -273,7 +272,7 @@ Route::middleware('auth')->group(function () {
 });
 
 
-// --- 5. THE ULTIMATE WINDOWS IMAGE FIX (WITH DEBUGGER) ---
+// --- 5. THE ULTIMATE WINDOWS IMAGE FIX ---
 Route::get('/news-image/{path}', function ($path) {
     $cleanPath = str_replace('\\', '/', $path);
     $filePath = storage_path('app/public/' . $cleanPath);

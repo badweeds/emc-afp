@@ -19,6 +19,29 @@ const militaryUnits = [
   "10th Infantry Division (10ID)"
 ];
 
+const topicsList = [
+  "Accomplishment", "Checkpoint Seizure", "FRs Reconciliation", "HADR Operations", "CTG Mem Surrender", 
+  "Surrender/Arms Cache", "Encounter", "Arms Cache", "Culture of Security", "Destabilization", 
+  "NPA Dismantling", "Unit Installation", "E-CLIP Programs", "NPA Ambush/Atrocity", "Outreach Program", 
+  "Commemoration", "CSP", "New Year's Call", "POs Programs", "New/Upgraded Facility", 
+  "New Commander/Officer", "Security Operations", "Unit Visit", "Blood Donation", "Killed Soldier", 
+  "Reservist Affairs", "BGen Durante Case", "Unit Anniversary", "NPA Arrest", "New Assets", 
+  "CTG Mem Abduction", "POs Issues/Concerns", "Persona Non-Grata", "Harassment by Troops", "ITDS Sustainment", 
+  "MILF Holding of Troops", "Sportsfest", "Troops Education", "Camp Shooting", "Drug Involvement", 
+  "AFP Recruitment", "Morale & Welfare", "Soldier Recognition", "Partners Engagement", "Training/Exercise", 
+  "Bomb/IED Retrieval", "Spiritual Enhancement", "BDP Project", "Killed NPA Assitance", "Chad Booc Death", 
+  "NPA Condemnation", "FCEMC Appointment", "POC Engagements", "GAD", "Int'l Military Visit", 
+  "Youth Empowerment", "Farewell Visit", "Govt Official Killing", "Insurgency-Free", "Ex-Troops Monitoring", 
+  "Campaign Plan", "Peace Forum", "Stakeholder Support", "Stakeholder Visit", "MOA/Partnership", 
+  "Environmental Activity", "Search Operation", "Promotion", "PAGs Update", "Aerial/Artillery Bombing", 
+  "Illegal Firearms", "Pilgram Visit", "Kidnapped Civilians", "Transport Assistance", "Security Update", 
+  "Peace Rally", "Symposium", "CTG Monitoring", "Civilian Killing", "AOR Expansion", "Fake Soldier", 
+  "Event Participation", "CORPAT", "Illegal Mining", "FB Page Hacking", "Unit Recognition", "Unit Send-Off", 
+  "Bomb Explosion/Scare", "Friendly Games", "Smuggling Apprehension", "PMA Examination", "Extrajudicial Killings", 
+  "Peace Monument", "White Area Operations", "Election Security", "Stress Debriefing", "New Soldiers", 
+  "Ceasefire", "Ramming Incident", "Troop Accident"
+];
+
 const mediaSources = {
   Local: ["Mindanao Times", "RMN DXDC 621 Davao", "SunStar Davao", "News Fort", "Bombo Radyo Davao", "PTV Davao", "Radyo Pilipinas Davao", "Edge Davao", "MDDN", "Mindanao Today", "MindaNews", "Bombo Radyo CDO", "SunStar Zamboanga", "CIO Davao City", "SunStar CDO", "Radyo Pilipinas Butuan", "Mindanao Gold Star Daily", "Bombo Radyo Butuan", "Brigada News Agusan", "RMN Malaybalay", "Mindanao Journal", "Superbalita Davao", "Mindanao Examiner", "Brigada News Gensan", "Brigada News CDO", "Brigada News Butuan", "Central Minda Newswatch", "News NOW", "PIA Caraga Region", "PIA Davao Region", "RPN DXKO CDO", "Davao Today", "NDBC News", "CDO Today", "Bombo Radyo Iloilo", "One Mindanao", "PLN Media", "Radyo Bandera Iloilo", "Watchmen Daily Journal", "RPN"],
   National: ["PNA", "PIA", "Manila Bulletin", "Kalinaw News", "Newsline Philippines", "Philippine Daily Inquirer", "The Manila Times", "Rappler", "The Philippine Star", "SMNI News", "PRWC", "Daily Tribune", "GMA News", "ABS-CBN News", "DZAR 1026", "Business Mirror", "Bombo Radyo PH", "Malaya Business Insight", "Manila Standard", "People's Tonight", "Remate", "Abante", "Global Daily Mirror", "RMN Manila", "Balita", "CNN Philippines", "Kidlat News Channel", "Net25 News", "One News", "PTV", "Radyo Agila", "Radyo Inquirer", "Journal News Online", "Dailymotion", "Filipino News", "PageOne PH", "Radyo Pilipinas", "Radyo Pilipinas Manila", "News 5", "ANC", "Brigada News PH", "Bulgar Online", "DWDD", "DZRH", "Radyo Natin Nationwide", "Tempo", "UNTV News and Rescue", "Maharlika TV", "Super Radyo DZBB"],
@@ -36,7 +59,7 @@ export default function AddNews() {
     scope: '', 
     media_outfit: '',
     custom_media_outfit: '', 
-    reporter: '', // ADDED REPORTER
+    reporter: '', 
     topic: '',
     unit_involved: '',
     category: '', 
@@ -60,15 +83,35 @@ export default function AddNews() {
     
     try {
       const response = await axios.post('/analyze-news', { content: rawContent });
+      
+      // Safely map Media Outfit: if AI finds a media source but it's not in the dropdown, switch to "Others"
+      const aiScope = response.data.scope || prev.scope;
+      const aiMedia = response.data.media_outfit || '';
+      const allKnownSources = [...mediaSources.Local, ...mediaSources.National, ...mediaSources.International];
+      
+      let finalMediaOutfit = aiMedia;
+      let finalCustomOutfit = '';
+      
+      if (aiMedia && !allKnownSources.includes(aiMedia)) {
+          finalMediaOutfit = 'Others';
+          finalCustomOutfit = aiMedia;
+      }
+
       setData(prev => ({
         ...prev,
         title: response.data.title || prev.title,
         summary: response.data.summary || prev.summary,
         category: response.data.category || prev.category,
         reporter: response.data.reporter || prev.reporter,
-        url: response.data.url || prev.url
+        url: response.data.url || prev.url,
+        scope: aiScope,
+        media_outfit: finalMediaOutfit || prev.media_outfit,
+        custom_media_outfit: finalCustomOutfit || prev.custom_media_outfit,
+        unit_involved: response.data.unit_involved || prev.unit_involved,
+        topic: response.data.topic || prev.topic,
+        date: response.data.date || prev.date,
       }));
-      toast.success("AI Auto-Fill Complete! You can review and edit.");
+      toast.success("AI Auto-Fill Complete! All relevant fields have been populated.");
     } catch (error) {
       toast.error("AI Analysis failed. Please check your API Key and internet connection.");
     } finally {
@@ -117,7 +160,7 @@ export default function AddNews() {
             <div className="space-y-2">
               <Label className="text-slate-700 font-bold">Paste Full Details Here (URL, Reporter, Article Text)</Label>
               <Textarea 
-                placeholder="Paste news text, link, and reporter name here. AI will extract and sort it into the fields below..."
+                placeholder="Paste news text here... AI will extract the summary, category, URL, reporter, scope, media outfit, unit, date, and topic automatically!"
                 className="min-h-[120px] bg-slate-50 border-slate-300 text-slate-800 focus:border-[#1E293B] focus:ring-[#1E293B]"
                 value={rawContent}
                 onChange={(e) => setRawContent(e.target.value)}
@@ -197,14 +240,13 @@ export default function AddNews() {
                   </div>
                 )}
                 
-                {/* NEW REPORTER FIELD */}
                 <div className="space-y-2">
                   <Label className="text-slate-700 font-bold">Reporter Name</Label>
-                  <Input value={data.reporter} onChange={e => setData('reporter', e.target.value)} placeholder="e.g. John Doe" className="border-slate-300 text-slate-900 bg-white focus:border-[#7B1E1E] focus:ring-[#7B1E1E]" />
+                  <Input value={data.reporter} onChange={e => setData('reporter', e.target.value)} placeholder="e.g. Tom Rapliza" className="border-slate-300 text-slate-900 bg-white focus:border-[#7B1E1E] focus:ring-[#7B1E1E]" />
                 </div>
               </div>
 
-              {/* Unit & Sentiment */}
+              {/* Unit, Topic, Sentiment */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-2">
                   <Label className="text-slate-700 font-bold">Unit Involved *</Label>
@@ -215,10 +257,18 @@ export default function AddNews() {
                     </SelectContent>
                   </Select>
                 </div>
+                
+                {/* THE NEW TOPIC DROPDOWN */}
                 <div className="space-y-2">
                   <Label className="text-slate-700 font-bold">Topic *</Label>
-                  <Input value={data.topic} onChange={e => setData('topic', e.target.value)} required className="border-slate-300 text-slate-900 bg-white focus:border-[#7B1E1E] focus:ring-[#7B1E1E]" />
+                  <Select value={data.topic} onValueChange={(val) => setData('topic', val)}>
+                    <SelectTrigger className="bg-white border-slate-300 text-slate-900 font-medium focus:ring-[#7B1E1E]"><SelectValue placeholder="Select topic" /></SelectTrigger>
+                    <SelectContent className="bg-white border border-slate-200 shadow-xl z-50 max-h-[300px]">
+                      {topicsList.map(topic => <SelectItem key={topic} value={topic} className={dropdownItemClass}>{topic}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
+
                 <div className="space-y-2">
                   <Label className="text-slate-700 font-bold">Category (Sentiment) *</Label>
                   <Select value={data.category} onValueChange={(val) => setData('category', val)}>

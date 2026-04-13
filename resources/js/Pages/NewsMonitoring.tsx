@@ -26,6 +26,29 @@ export interface NewsItem {
   image_path: string | null;
 }
 
+const topicsList = [
+  "Accomplishment", "Checkpoint Seizure", "FRs Reconciliation", "HADR Operations", "CTG Mem Surrender", 
+  "Surrender/Arms Cache", "Encounter", "Arms Cache", "Culture of Security", "Destabilization", 
+  "NPA Dismantling", "Unit Installation", "E-CLIP Programs", "NPA Ambush/Atrocity", "Outreach Program", 
+  "Commemoration", "CSP", "New Year's Call", "POs Programs", "New/Upgraded Facility", 
+  "New Commander/Officer", "Security Operations", "Unit Visit", "Blood Donation", "Killed Soldier", 
+  "Reservist Affairs", "BGen Durante Case", "Unit Anniversary", "NPA Arrest", "New Assets", 
+  "CTG Mem Abduction", "POs Issues/Concerns", "Persona Non-Grata", "Harassment by Troops", "ITDS Sustainment", 
+  "MILF Holding of Troops", "Sportsfest", "Troops Education", "Camp Shooting", "Drug Involvement", 
+  "AFP Recruitment", "Morale & Welfare", "Soldier Recognition", "Partners Engagement", "Training/Exercise", 
+  "Bomb/IED Retrieval", "Spiritual Enhancement", "BDP Project", "Killed NPA Assitance", "Chad Booc Death", 
+  "NPA Condemnation", "FCEMC Appointment", "POC Engagements", "GAD", "Int'l Military Visit", 
+  "Youth Empowerment", "Farewell Visit", "Govt Official Killing", "Insurgency-Free", "Ex-Troops Monitoring", 
+  "Campaign Plan", "Peace Forum", "Stakeholder Support", "Stakeholder Visit", "MOA/Partnership", 
+  "Environmental Activity", "Search Operation", "Promotion", "PAGs Update", "Aerial/Artillery Bombing", 
+  "Illegal Firearms", "Pilgram Visit", "Kidnapped Civilians", "Transport Assistance", "Security Update", 
+  "Peace Rally", "Symposium", "CTG Monitoring", "Civilian Killing", "AOR Expansion", "Fake Soldier", 
+  "Event Participation", "CORPAT", "Illegal Mining", "FB Page Hacking", "Unit Recognition", "Unit Send-Off", 
+  "Bomb Explosion/Scare", "Friendly Games", "Smuggling Apprehension", "PMA Examination", "Extrajudicial Killings", 
+  "Peace Monument", "White Area Operations", "Election Security", "Stress Debriefing", "New Soldiers", 
+  "Ceasefire", "Ramming Incident", "Troop Accident"
+];
+
 const newsSources = ["Mindanao Times", "RMN DXDC 621 Davao", "SunStar Davao", "Inquirer", "Philippine Star", "Manila Bulletin", "GMA News", "ABS-CBN News", "Rappler", "Others"];
 
 export default function NewsMonitoring({ news = [] }: { news: NewsItem[] }) {
@@ -144,12 +167,12 @@ export default function NewsMonitoring({ news = [] }: { news: NewsItem[] }) {
   );
 }
 
-// 2. UPGRADED EDIT MODAL WITH IMAGE UPLOAD & REPORTER
+// 2. UPGRADED EDIT MODAL WITH IMAGE UPLOAD, REPORTER & TOPIC DROPDOWN
 function EditModal({ item, onClose }: { item: NewsItem; onClose: () => void }) {
   const [imagePreview, setImagePreview] = useState<string | null>(item.image_path ? `/news-image/${item.image_path}` : null);
   
   const { data, setData, post, processing } = useForm({
-    _method: 'patch', // Required by Laravel/Inertia for updating with files
+    _method: 'patch', 
     title: item.title,
     summary: item.summary,
     media_outfit: item.media_outfit,
@@ -173,7 +196,7 @@ function EditModal({ item, onClose }: { item: NewsItem; onClose: () => void }) {
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     post(`/news/${item.id}`, {
-      forceFormData: true, // Forces multipart data so image is actually uploaded on save
+      forceFormData: true,
       onSuccess: () => {
         toast.success('Report updated successfully');
         onClose();
@@ -187,7 +210,6 @@ function EditModal({ item, onClose }: { item: NewsItem; onClose: () => void }) {
         <DialogHeader><DialogTitle>Edit Intelligence Report</DialogTitle></DialogHeader>
         <form onSubmit={submit} className="space-y-4 py-4">
           
-          {/* REPLACE IMAGE SECTION */}
           <div className="p-4 bg-slate-50 border border-dashed border-slate-300 rounded-lg">
             <Label className="mb-2 text-slate-700 font-bold">Replace Screenshot (Optional)</Label>
             {imagePreview ? (
@@ -222,6 +244,16 @@ function EditModal({ item, onClose }: { item: NewsItem; onClose: () => void }) {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
+            {/* UPDATED TOPIC FIELD TO DROPDOWN */}
+            <div className="space-y-2">
+              <Label>Topic</Label>
+              <Select value={data.topic} onValueChange={v => setData('topic', v)}>
+                <SelectTrigger><SelectValue placeholder="Select topic" /></SelectTrigger>
+                <SelectContent className="max-h-[200px]">
+                  {topicsList.map(topic => <SelectItem key={topic} value={topic}>{topic}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-2">
               <Label>Category</Label>
               <Select value={data.category} onValueChange={v => setData('category', v)}>
@@ -233,15 +265,16 @@ function EditModal({ item, onClose }: { item: NewsItem; onClose: () => void }) {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
+          </div>
+
+          <div className="space-y-2">
               <Label>News Link (URL)</Label>
               <Input value={data.url} onChange={e => setData('url', e.target.value)} />
-            </div>
           </div>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={processing} className="bg-[#7B1E1E]">Save All Changes</Button>
+            <Button type="submit" disabled={processing} className="bg-[#7B1E1E] hover:bg-[#7B1E1E]/90 text-white">Save All Changes</Button>
           </DialogFooter>
         </form>
       </DialogContent>
