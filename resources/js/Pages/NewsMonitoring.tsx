@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '../Components/ui/card';
 import { Input } from '../Components/ui/input';
@@ -59,6 +59,10 @@ const mediaSources = {
 const allSourcesFlat = [...mediaSources.Local, ...mediaSources.National, ...mediaSources.International];
 
 export default function NewsMonitoring({ news = [] }: { news: NewsItem[] }) {
+  // THE FIX: Grab the current logged-in user from Inertia's page props
+  const { auth } = usePage<any>().props;
+  const isAdmin = auth.user?.role === 'admin';
+
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSource, setFilterSource] = useState<string>('all');
   const [filterCategory, setFilterCategory] = useState<string>('all');
@@ -89,7 +93,7 @@ export default function NewsMonitoring({ news = [] }: { news: NewsItem[] }) {
 
       <div className="space-y-6 max-w-7xl mx-auto p-6 lg:p-8">
         
-        {/* THE FIX: Forced white background on the Header so it is always readable */}
+        {/* Forced white background on the Header so it is always readable */}
         <div className="flex justify-between items-center bg-white p-6 rounded-xl shadow-sm border border-slate-200">
           <div>
             <h1 className="text-3xl font-extrabold text-[#1E293B]">News Monitoring</h1>
@@ -97,7 +101,7 @@ export default function NewsMonitoring({ news = [] }: { news: NewsItem[] }) {
           </div>
         </div>
 
-        {/* THE FIX: Added bg-white to explicitly stop Dark Mode from turning the card dark grey */}
+        {/* Added bg-white to explicitly stop Dark Mode from turning the card dark grey */}
         <Card className="shadow-md bg-white border border-slate-200 border-t-4 border-t-[#1E293B]">
           <CardHeader className="bg-slate-50 border-b border-slate-100 rounded-t-xl">
             <CardTitle className="flex items-center gap-2 text-[#1E293B]"><Filter className="size-5" /> Filters</CardTitle>
@@ -128,7 +132,7 @@ export default function NewsMonitoring({ news = [] }: { news: NewsItem[] }) {
           </CardContent>
         </Card>
 
-        {/* THE FIX: Added bg-white to the Table Card */}
+        {/* Added bg-white to the Table Card */}
         <Card className="shadow-md bg-white border border-slate-200 border-t-4 border-t-[#7B1E1E]">
           <CardContent className="pt-6">
             <Table>
@@ -160,9 +164,21 @@ export default function NewsMonitoring({ news = [] }: { news: NewsItem[] }) {
                       <TableCell className="text-slate-700">{item.date}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-1 justify-end">
-                          <Button variant="ghost" size="sm" onClick={() => setSelectedNews(item)} className="text-slate-600 hover:text-[#1E293B] hover:bg-slate-100"><Eye className="size-4" /></Button>
-                          <Button variant="ghost" size="sm" onClick={() => setEditNews(item)} className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"><Pencil className="size-4" /></Button>
-                          <Button variant="ghost" size="sm" onClick={() => handleDelete(item.id)} className="text-red-600 hover:text-red-800 hover:bg-red-50"><Trash2 className="size-4" /></Button>
+                          <Button variant="ghost" size="sm" onClick={() => setSelectedNews(item)} className="text-slate-600 hover:text-[#1E293B] hover:bg-slate-100">
+                            <Eye className="size-4" />
+                          </Button>
+                          
+                          {/* THE FIX: Only render Edit and Delete buttons if the user is an admin */}
+                          {isAdmin && (
+                            <>
+                              <Button variant="ghost" size="sm" onClick={() => setEditNews(item)} className="text-blue-600 hover:text-blue-800 hover:bg-blue-50">
+                                <Pencil className="size-4" />
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => handleDelete(item.id)} className="text-red-600 hover:text-red-800 hover:bg-red-50">
+                                <Trash2 className="size-4" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

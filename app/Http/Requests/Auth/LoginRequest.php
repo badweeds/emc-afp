@@ -50,6 +50,20 @@ class LoginRequest extends FormRequest
             ]);
         }
 
+        // --- NEW SECURITY CHECK FOR ADMIN APPROVAL ---
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        if ($user->status === 'pending') {
+            // If account is still pending, log them out immediately
+            Auth::logout();
+
+            throw ValidationException::withMessages([
+                'email' => 'Access Denied: Your account is still pending Admin approval. Please wait for authorization.',
+            ]);
+        }
+        // ---------------------------------------------
+
         RateLimiter::clear($this->throttleKey());
     }
 

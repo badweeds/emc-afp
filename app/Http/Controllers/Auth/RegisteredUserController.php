@@ -37,16 +37,21 @@ class RegisteredUserController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
+        // THE FIX: Explicitly set them as a 'user' and make their status 'pending'
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'role' => 'user', 
+            'status' => 'pending', 
         ]);
 
         event(new Registered($user));
 
-        Auth::login($user);
+        // THE FIX: Stop Laravel from automatically logging them in!
+        // Auth::login($user);
 
-        return redirect(route('dashboard', absolute: false));
+        // Redirect them back to the login page with a green success message
+        return redirect()->route('login')->with('status', 'Registration successful! Your account is pending Admin approval.');
     }
 }
