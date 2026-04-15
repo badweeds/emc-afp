@@ -11,7 +11,7 @@ interface NewsItem {
   id: number;
   title: string;
   category: string;
-  media_outfit: string;
+  media_outlet: string;
   date: string;
 }
 
@@ -27,7 +27,7 @@ export default function Analytics({ news = [] }: { news: NewsItem[] }) {
   // 2. Calculate News per Source (Top 5)
   const sourceCounts: Record<string, number> = {};
   news.forEach(n => {
-    sourceCounts[n.media_outfit] = (sourceCounts[n.media_outfit] || 0) + 1;
+    sourceCounts[n.media_outlet] = (sourceCounts[n.media_outlet] || 0) + 1;
   });
   const sourceData = Object.entries(sourceCounts)
     .map(([source, count]) => ({ source, count }))

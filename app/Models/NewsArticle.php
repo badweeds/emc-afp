@@ -13,7 +13,7 @@ class NewsArticle extends Model
     protected $fillable = [
         'title',
         'summary',
-        'media_outfit',
+        'media_outlet',
         'reporter',
         'topic',
         'unit_involved',

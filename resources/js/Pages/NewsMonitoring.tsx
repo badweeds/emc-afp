@@ -17,7 +17,7 @@ export interface NewsItem {
   id: number;
   title: string;
   summary: string;
-  media_outfit: string;
+  media_outlet: string;
   reporter: string | null;
   topic: string;
   unit_involved: string;
@@ -78,7 +78,7 @@ export default function NewsMonitoring({ news = [] }: { news: NewsItem[] }) {
     const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           (item.summary && item.summary.toLowerCase().includes(searchTerm.toLowerCase())) ||
                           (item.reporter && item.reporter.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesSource = filterSource === 'all' || item.media_outfit === filterSource;
+    const matchesSource = filterSource === 'all' || item.media_outlet === filterSource;
     const matchesCategory = filterCategory === 'all' || item.category === filterCategory;
     return matchesSearch && matchesSource && matchesCategory;
   });
@@ -149,7 +149,7 @@ export default function NewsMonitoring({ news = [] }: { news: NewsItem[] }) {
                   filteredNews.map((item) => (
                     <TableRow key={item.id} className="hover:bg-slate-50 border-b border-slate-100">
                       <TableCell className="font-semibold text-slate-900 max-w-sm truncate">{item.title}</TableCell>
-                      <TableCell className="text-slate-700">{item.media_outfit}</TableCell>
+                      <TableCell className="text-slate-700">{item.media_outlet}</TableCell>
                       <TableCell className="text-slate-500">{item.reporter || 'N/A'}</TableCell>
                       <TableCell>
                         <span className={`px-2 py-1 rounded text-xs font-bold ${
@@ -184,25 +184,25 @@ function EditModal({ item, onClose }: { item: NewsItem; onClose: () => void }) {
   const [imagePreview, setImagePreview] = useState<string | null>(item.image_path ? `/news-image/${item.image_path}` : null);
   
   let initialScope = 'Local'; 
-  let initialMediaOutfit = item.media_outfit;
-  let initialCustomOutfit = '';
+  let initialMediaOutlet = item.media_outlet;
+  let initialCustomOutlet = '';
 
-  if (mediaSources.National.includes(item.media_outfit)) {
+  if (mediaSources.National.includes(item.media_outlet)) {
       initialScope = 'National';
-  } else if (mediaSources.International.includes(item.media_outfit)) {
+  } else if (mediaSources.International.includes(item.media_outlet)) {
       initialScope = 'International';
-  } else if (!mediaSources.Local.includes(item.media_outfit)) {
+  } else if (!mediaSources.Local.includes(item.media_outlet)) {
       initialScope = 'Local';
-      initialMediaOutfit = 'Others';
-      initialCustomOutfit = item.media_outfit;
+      initialMediaOutlet = 'Others';
+      initialCustomOutlet = item.media_outlet;
   }
 
   const { data, setData, post, processing, transform } = useForm({
     title: item.title,
     summary: item.summary,
     scope: initialScope,
-    media_outfit: initialMediaOutfit,
-    custom_media_outfit: initialCustomOutfit,
+    media_outlet: initialMediaOutlet,
+    custom_media_outlet: initialCustomOutlet,
     reporter: item.reporter || '',
     topic: item.topic,
     unit_involved: item.unit_involved,
@@ -214,7 +214,7 @@ function EditModal({ item, onClose }: { item: NewsItem; onClose: () => void }) {
 
   transform((formData) => ({
     ...formData,
-    media_outfit: formData.media_outfit === 'Others' ? formData.custom_media_outfit : formData.media_outfit,
+    media_outlet: formData.media_outlet === 'Others' ? formData.custom_media_outlet : formData.media_outlet,
   }));
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -277,7 +277,7 @@ function EditModal({ item, onClose }: { item: NewsItem; onClose: () => void }) {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-5 bg-slate-50 rounded-lg border border-slate-100">
             <div className="space-y-2">
               <Label className="font-bold text-slate-700">Media Scope *</Label>
-              <Select value={data.scope} onValueChange={(val) => { setData('scope', val); setData('media_outfit', ''); }}>
+              <Select value={data.scope} onValueChange={(val) => { setData('scope', val); setData('media_outlet', ''); }}>
                 <SelectTrigger className="bg-white text-slate-900 border-slate-300"><SelectValue placeholder="Select scope" /></SelectTrigger>
                 <SelectContent className="bg-white z-50">
                   <SelectItem value="Local" className={dropdownItemClass}>Local</SelectItem>
@@ -288,9 +288,9 @@ function EditModal({ item, onClose }: { item: NewsItem; onClose: () => void }) {
             </div>
 
             <div className="space-y-2">
-              <Label className="font-bold text-slate-700">Media Outfit *</Label>
-              <Select value={data.media_outfit} onValueChange={(val) => setData('media_outfit', val)} disabled={!data.scope}>
-                <SelectTrigger className="bg-white text-slate-900 border-slate-300"><SelectValue placeholder="Select outfit" /></SelectTrigger>
+              <Label className="font-bold text-slate-700">Media Outlet *</Label>
+              <Select value={data.media_outlet} onValueChange={(val) => setData('media_outlet', val)} disabled={!data.scope}>
+                <SelectTrigger className="bg-white text-slate-900 border-slate-300"><SelectValue placeholder="Select letfit" /></SelectTrigger>
                 <SelectContent className="bg-white z-50 max-h-[300px]">
                   {currentMediaList.map(s => <SelectItem key={s} value={s} className={dropdownItemClass}>{s}</SelectItem>)}
                   <SelectItem value="Others" className="text-[#7B1E1E] font-bold cursor-pointer focus:bg-[#7B1E1E] focus:text-white py-2 border-t mt-1">Others (Manual Input)</SelectItem>
@@ -298,10 +298,10 @@ function EditModal({ item, onClose }: { item: NewsItem; onClose: () => void }) {
               </Select>
             </div>
 
-            {data.media_outfit === 'Others' && (
+            {data.media_outlet === 'Others' && (
               <div className="space-y-2">
                 <Label className="font-bold text-slate-700">Specify Media *</Label>
-                <Input value={data.custom_media_outfit} onChange={e => setData('custom_media_outfit', e.target.value)} required className="bg-white text-slate-900 border-slate-300 focus:ring-[#7B1E1E]" />
+                <Input value={data.custom_media_outlet} onChange={e => setData('custom_media_outlet', e.target.value)} required className="bg-white text-slate-900 border-slate-300 focus:ring-[#7B1E1E]" />
               </div>
             )}
             

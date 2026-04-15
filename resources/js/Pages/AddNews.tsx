@@ -57,8 +57,8 @@ export default function AddNews() {
     title: '',
     summary: '',
     scope: '', 
-    media_outfit: '',
-    custom_media_outfit: '', 
+    media_outlet: '',
+    custom_media_outlet: '', 
     reporter: '', 
     topic: '',
     unit_involved: '',
@@ -70,7 +70,7 @@ export default function AddNews() {
 
   transform((formData) => ({
     ...formData,
-    media_outfit: formData.media_outfit === 'Others' ? formData.custom_media_outfit : formData.media_outfit,
+    media_outlet: formData.media_outlet === 'Others' ? formData.custom_media_outlet : formData.media_outlet,
   }));
 
   const handleAIAnalysis = async () => {
@@ -85,15 +85,15 @@ export default function AddNews() {
       const response = await axios.post('/analyze-news', { content: rawContent });
       
       const aiScope = response.data.scope || data.scope;
-      const aiMedia = response.data.media_outfit || '';
+      const aiMedia = response.data.media_outlet || '';
       const allKnownSources = [...mediaSources.Local, ...mediaSources.National, ...mediaSources.International];
       
-      let finalMediaOutfit = aiMedia;
-      let finalCustomOutfit = '';
+      let finalMediaOutlet = aiMedia;
+      let finalCustomOutlet = '';
       
       if (aiMedia && !allKnownSources.includes(aiMedia)) {
-          finalMediaOutfit = 'Others';
-          finalCustomOutfit = aiMedia;
+          finalMediaOutlet = 'Others';
+          finalCustomOutlet = aiMedia;
       }
 
       setData(prev => ({
@@ -104,8 +104,8 @@ export default function AddNews() {
         reporter: response.data.reporter || prev.reporter,
         url: response.data.url || prev.url,
         scope: aiScope,
-        media_outfit: finalMediaOutfit || prev.media_outfit,
-        custom_media_outfit: finalCustomOutfit || prev.custom_media_outfit,
+        media_outlet: finalMediaOutlet || prev.media_outlet,
+        custom_media_outlet: finalCustomOutlet || prev.custom_media_outlet,
         unit_involved: response.data.unit_involved || prev.unit_involved,
         topic: response.data.topic || prev.topic,
         date: response.data.date || prev.date,
@@ -166,7 +166,7 @@ export default function AddNews() {
             <div className="space-y-2">
               <Label className="text-slate-700 font-bold">Paste Full Details Here (URL, Reporter, Article Text)</Label>
               <Textarea 
-                placeholder="Paste news text here... AI will extract the summary, category, URL, reporter, scope, media outfit, unit, date, and topic automatically!"
+                placeholder="Paste news text here... AI will extract the summary, category, URL, reporter, scope, media outlet, unit, date, and topic automatically!"
                 className="min-h-[120px] bg-slate-50 border-slate-300 text-slate-800 focus:border-[#1E293B] focus:ring-[#1E293B]"
                 value={rawContent}
                 onChange={(e) => setRawContent(e.target.value)}
@@ -221,7 +221,7 @@ export default function AddNews() {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-5 bg-slate-50 rounded-lg border border-slate-200">
                 <div className="space-y-2">
                   <Label className="text-slate-700 font-bold">Media Scope *</Label>
-                  <Select value={data.scope} onValueChange={(val) => { setData('scope', val); setData('media_outfit', ''); }}>
+                  <Select value={data.scope} onValueChange={(val) => { setData('scope', val); setData('media_outlet', ''); }}>
                     <SelectTrigger className="bg-white border-slate-300 text-slate-900 font-medium focus:ring-[#7B1E1E]"><SelectValue placeholder="Select scope" /></SelectTrigger>
                     <SelectContent className="bg-white border border-slate-200 shadow-xl z-50">
                       <SelectItem value="Local" className={dropdownItemClass}>Local</SelectItem>
@@ -233,21 +233,21 @@ export default function AddNews() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-slate-700 font-bold">Media Outfit *</Label>
-                  <Select value={data.media_outfit} onValueChange={(val) => setData('media_outfit', val)} disabled={!data.scope}>
-                    <SelectTrigger className="bg-white border-slate-300 text-slate-900 font-medium focus:ring-[#7B1E1E]"><SelectValue placeholder="Select outfit" /></SelectTrigger>
+                  <Label className="text-slate-700 font-bold">Media Outlet *</Label>
+                  <Select value={data.media_outlet} onValueChange={(val) => setData('media_outlet', val)} disabled={!data.scope}>
+                    <SelectTrigger className="bg-white border-slate-300 text-slate-900 font-medium focus:ring-[#7B1E1E]"><SelectValue placeholder="Select outlet" /></SelectTrigger>
                     <SelectContent className="bg-white border border-slate-200 shadow-xl z-50 max-h-[300px]">
                       {currentMediaList.map(s => <SelectItem key={s} value={s} className={dropdownItemClass}>{s}</SelectItem>)}
                       <SelectItem value="Others" className="text-[#7B1E1E] font-bold cursor-pointer focus:bg-[#7B1E1E] focus:text-white py-2 border-t mt-1">Others (Manual Input)</SelectItem>
                     </SelectContent>
                   </Select>
-                  {errors.media_outfit && <p className="text-red-500 text-xs mt-1">{errors.media_outfit}</p>}
+                  {errors.media_outlet && <p className="text-red-500 text-xs mt-1">{errors.media_outlet}</p>}
                 </div>
 
-                {data.media_outfit === 'Others' && (
+                {data.media_outlet === 'Others' && (
                   <div className="space-y-2">
                     <Label className="text-slate-700 font-bold">Specify Media *</Label>
-                    <Input value={data.custom_media_outfit} onChange={e => setData('custom_media_outfit', e.target.value)} required className="border-slate-300 text-slate-900 bg-white focus:border-[#7B1E1E] focus:ring-[#7B1E1E]" />
+                    <Input value={data.custom_media_outlet} onChange={e => setData('custom_media_outlet', e.target.value)} required className="border-slate-300 text-slate-900 bg-white focus:border-[#7B1E1E] focus:ring-[#7B1E1E]" />
                   </div>
                 )}
                 

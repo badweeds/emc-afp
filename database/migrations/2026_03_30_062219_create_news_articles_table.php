@@ -16,7 +16,7 @@ return new class extends Migration
             $table->date('date');
             $table->string('title');
             $table->string('scope')->nullable(); // Added Scope (Local/National/International)
-            $table->string('media_outfit'); // From Media.csv
+            $table->string('media_outlet'); // From Media.csv
             $table->string('reporter')->nullable(); // From Reporter.csv
             $table->string('unit_involved'); // 10ID, 4ID, EMC, etc.
             $table->string('topic'); // Accomplishment, Encounter, etc.
