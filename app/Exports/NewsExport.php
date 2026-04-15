@@ -19,12 +19,12 @@ class NewsExport implements FromCollection, WithHeadings, WithMapping, ShouldAut
 
     public function headings(): array
     {
-        return ['DATE', 'TITLE', 'MEDIA OUTFIT', 'UNIT INVOLVED', 'ISSUE/TOPIC', 'CATEGORY', 'SUMMARY', 'URL/LINK'];
+        return ['DATE', 'TITLE', 'MEDIA OUTLET', 'UNIT INVOLVED', 'ISSUE/TOPIC', 'CATEGORY', 'SUMMARY', 'URL/LINK'];
     }
 
     public function map($news): array
     {
-        return [$news->date, $news->title, $news->media_outfit, $news->unit_involved, $news->topic, $news->category, $news->summary, $news->url];
+        return [$news->date, $news->title, $news->media_outlet, $news->unit_involved, $news->topic, $news->category, $news->summary, $news->url];
     }
 
     public function styles(Worksheet $sheet)

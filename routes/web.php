@@ -59,8 +59,8 @@ Route::middleware('auth')->group(function () {
             "title": "The headline of the article (or generate one if missing)",
             "reporter": "The name of the reporter/author (or empty string if not found)",
             "url": "Any website link found in the text (or empty string if not found)",
-            "media_outfit": "CRITICAL: You MUST map the publisher EXACTLY to one of the names in the Local, National, or International lists provided below. Example: If you read \'Inquirer\', you MUST output \'Philippine Daily Inquirer\'. If you read \'SunStar\', you MUST output \'SunStar Davao\'. If you absolutely cannot find a match, output the name as it appears in the text.",
-            "scope": "Must be exactly one of: Local, National, International. Rule: If the media_outfit is in the Local List, scope MUST be Local. If in National List, scope MUST be National.",
+            "media_outlet": "CRITICAL: You MUST map the publisher EXACTLY to one of the names in the Local, National, or International lists provided below. Example: If you read \'Inquirer\', you MUST output \'Philippine Daily Inquirer\'. If you read \'SunStar\', you MUST output \'SunStar Davao\'. If you absolutely cannot find a match, output the name as it appears in the text.",
+            "scope": "Must be exactly one of: Local, National, International. Rule: If the media_outlet is in the Local List, scope MUST be Local. If in National List, scope MUST be National.",
             "unit_involved": "Must be exactly one of: Eastern Mindanao Command (EastMinCom) Headquarters, Naval Forces Eastern Mindanao (NFEM), Tactical Operations Group 10 (TOG 10), 4th Infantry Division (4ID), 10th Infantry Division (10ID)",
             "topic": "Determine the most relevant topic. Must be exactly one of: Accomplishment, Checkpoint Seizure, FRs Reconciliation, HADR Operations, CTG Mem Surrender, Surrender/Arms Cache, Encounter, Arms Cache, Culture of Security, Destabilization, NPA Dismantling, Unit Installation, E-CLIP Programs, NPA Ambush/Atrocity, Outreach Program, Commemoration, CSP, New Year\'s Call, POs Programs, New/Upgraded Facility, New Commander/Officer, Security Operations, Unit Visit, Blood Donation, Killed Soldier, Reservist Affairs, BGen Durante Case, Unit Anniversary, NPA Arrest, New Assets, CTG Mem Abduction, POs Issues/Concerns, Persona Non-Grata, Harassment by Troops, ITDS Sustainment, MILF Holding of Troops, Sportsfest, Troops Education, Camp Shooting, Drug Involvement, AFP Recruitment, Morale & Welfare, Soldier Recognition, Partners Engagement, Training/Exercise, Bomb/IED Retrieval, Spiritual Enhancement, BDP Project, Killed NPA Assitance, Chad Booc Death, NPA Condemnation, FCEMC Appointment, POC Engagements, GAD, Int\'l Military Visit, Youth Empowerment, Farewell Visit, Govt Official Killing, Insurgency-Free, Ex-Troops Monitoring, Campaign Plan, Peace Forum, Stakeholder Support, Stakeholder Visit, MOA/Partnership, Environmental Activity, Search Operation, Promotion, PAGs Update, Aerial/Artillery Bombing, Illegal Firearms, Pilgram Visit, Kidnapped Civilians, Transport Assistance, Security Update, Peace Rally, Symposium, CTG Monitoring, Civilian Killing, AOR Expansion, Fake Soldier, Event Participation, CORPAT, Illegal Mining, FB Page Hacking, Unit Recognition, Unit Send-Off, Bomb Explosion/Scare, Friendly Games, Smuggling Apprehension, PMA Examination, Extrajudicial Killings, Peace Monument, White Area Operations, Election Security, Stress Debriefing, New Soldiers, Ceasefire, Ramming Incident, Troop Accident",
             "date": "The date of the news article in YYYY-MM-DD format. If no date is found, leave blank."
@@ -127,7 +127,7 @@ Route::middleware('auth')->group(function () {
         $validated = $request->validate([
             'title' => 'required', 
             'summary' => 'required', 
-            'media_outfit' => 'required',
+            'media_outlet' => 'required',
             'reporter' => 'nullable|string', 
             'topic' => 'required', 
             'unit_involved' => 'required', 
@@ -153,7 +153,7 @@ Route::middleware('auth')->group(function () {
         $validated = $request->validate([
             'title' => 'required', 
             'summary' => 'required', 
-            'media_outfit' => 'required',
+            'media_outlet' => 'required',
             'reporter' => 'nullable|string',
             'topic' => 'required', 
             'unit_involved' => 'required', 
@@ -272,7 +272,7 @@ Route::get('/export/docx', function (Request $request) {
         }
 
         $cell3 = $table->addCell(2500);
-        $cell3->addText($item->media_outfit, ['name' => 'Arial', 'bold' => true, 'size' => 10], ['alignment' => Jc::CENTER, 'spaceAfter' => 0]);
+        $cell3->addText($item->media_outlet, ['name' => 'Arial', 'bold' => true, 'size' => 10], ['alignment' => Jc::CENTER, 'spaceAfter' => 0]);
         if (!empty($item->reporter)) {
             $cell3->addText($item->reporter, ['name' => 'Arial', 'size' => 9], ['alignment' => Jc::CENTER, 'spaceAfter' => 0]);
         }
@@ -324,8 +324,8 @@ Route::get('/export/docx', function (Request $request) {
             }
         }
 
-        // 3. Print Media Outfit / Reporter (Optional, based on your screenshot you might not even want this here, but I kept it small)
-        $publisherAuthor = $item->media_outfit;
+        // 3. Print Media Outlet / Reporter (Optional, based on your screenshot you might not even want this here, but I kept it small)
+        $publisherAuthor = $item->media_outlet;
         if (!empty($item->reporter)) {
             $publisherAuthor .= " | " . $item->reporter;
         }

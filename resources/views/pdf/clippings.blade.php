@@ -41,7 +41,7 @@
                     <div class="summary">{{ $item->summary }}</div>
                     <div style="font-size: 8pt; color: blue; margin-top: 5px;">{{ $item->url }}</div>
                 </td>
-                <td><div style="font-weight: bold;">{{ $item->media_outfit }}</div></td>
+                <td><div style="font-weight: bold;">{{ $item->media_outlet }}</div></td>
             </tr>
             @endforeach
         </tbody>

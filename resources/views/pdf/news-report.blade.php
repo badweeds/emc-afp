@@ -23,7 +23,7 @@
     <div class="report-item">
         <div class="news-title">{{ $item->title }}</div>
         <div class="meta">
-            {{ $item->date }} | {{ $item->media_outfit }} | Unit: {{ $item->unit_involved }} | Category: {{ $item->category }}
+            {{ $item->date }} | {{ $item->media_outlet }} | Unit: {{ $item->unit_involved }} | Category: {{ $item->category }}
         </div>
         <div class="summary">{{ $item->summary }}</div>
     </div>
