@@ -86,7 +86,7 @@ Route::middleware('auth')->group(function () {
         $systemPrompt = 'You are an expert military intelligence analyst based in the Philippines (Davao Region). 
         Extract the details from the user\'s text and output ONLY a valid JSON object matching these exact keys:
         {
-            "summary": "The FULL, comprehensive body of the news article. Retain all original paragraphs, important details, and quotes. Do NOT summarize into 2 sentences. Preserve paragraph breaks using \n.",
+            "summary": "The FULL, comprehensive body of the news article, completely cleaned of website junk. Retain all original article paragraphs, important details, and quotes. CRITICAL: You MUST explicitly remove copy-paste boilerplate text such as \'Share\', \'Copy Link\', \'Facebook\', \'X\', \'Article continues after this advertisement\', \'Subscribe to our daily newsletter\', email signups, and the author/date lines at the beginning or end. Do NOT summarize; provide the full, clean text. Preserve paragraph breaks using \n.",
             "category": "Sentiment towards the military/government. Exactly one of: Favorable, Neutral, Unfavorable",
             "title": "The headline of the article (or generate one if missing)",
             "reporter": "The name of the reporter/author (or empty string if not found)",

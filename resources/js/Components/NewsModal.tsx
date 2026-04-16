@@ -2,12 +2,11 @@ import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/Components/ui/dialog';
 import { Calendar, User, Building, Link as LinkIcon } from 'lucide-react';
 
-// We must map all the fields from your database to make sure TypeScript is happy
 interface NewsItem {
   id?: number;
   title: string;
   summary: string;
-  media_outfit: string;
+  media_outlet: string;
   reporter: string | null;
   topic: string;
   unit_involved: string;
@@ -28,12 +27,9 @@ export function NewsModal({ news, open, onClose }: NewsModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      {/* THE FIX: Changed max-w-2xl to max-w-4xl for a much wider, comfortable reading view.
-        Removed standard padding (p-0) so the image can touch the very top edges.
-      */}
       <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto bg-white p-0 rounded-xl shadow-2xl border-0">
         
-        {/* 1. Dynamic Image Banner (If an image exists, it goes right at the top!) */}
+        {/* Dynamic Image Banner */}
         {news.image_path && (
           <div className="w-full bg-slate-100 flex items-center justify-center overflow-hidden rounded-t-xl border-b border-slate-200">
             <img 
@@ -46,7 +42,7 @@ export function NewsModal({ news, open, onClose }: NewsModalProps) {
 
         <div className="p-8 md:p-10">
           
-          {/* 2. Top Badges (Topic, Sentiment, Unit) */}
+          {/* Top Badges */}
           <div className="flex flex-wrap gap-2 mb-6">
             <span className="px-3 py-1 bg-slate-100 text-slate-700 text-xs font-bold rounded-md tracking-wide uppercase border border-slate-200">
               {news.topic}
@@ -62,7 +58,6 @@ export function NewsModal({ news, open, onClose }: NewsModalProps) {
             </span>
           </div>
           
-          {/* 3. Headline */}
           <DialogHeader>
             <DialogTitle className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-6 leading-tight">
               {news.title}
@@ -70,22 +65,34 @@ export function NewsModal({ news, open, onClose }: NewsModalProps) {
             <DialogDescription className="hidden">Intelligence Report Details</DialogDescription>
           </DialogHeader>
 
-          {/* 4. Meta Information Bar (Source, Reporter, Date, Link) */}
+          {/* THE FIX: Correctly mapped Media Outlet to Building and Reporter to User */}
           <div className="flex flex-wrap gap-x-6 gap-y-3 text-sm text-slate-600 mb-8 pb-6 border-b border-slate-200">
-            <div className="flex items-center gap-2">
-                <Building className="size-4 text-[#7B1E1E]"/> 
-                <span className="font-bold text-slate-800">{news.media_outfit}</span>
-            </div>
+            
+            {/* Building Icon -> Media Outlet (Publisher) */}
+            {news.media_outlet && (
+                <div className="flex items-center gap-2">
+                    <Building className="size-4 text-[#7B1E1E]"/> 
+                    <span className="font-bold text-slate-800">{news.media_outlet}</span>
+                </div>
+            )}
+
+            {/* User Icon -> Reporter (Author) */}
             {news.reporter && (
                 <div className="flex items-center gap-2">
                     <User className="size-4 text-[#7B1E1E]"/> 
                     <span className="font-medium">{news.reporter}</span>
                 </div>
             )}
-            <div className="flex items-center gap-2">
-                <Calendar className="size-4 text-[#7B1E1E]"/> 
-                <span className="font-medium">{news.date}</span>
-            </div>
+
+            {/* Calendar Icon -> Date */}
+            {news.date && (
+                <div className="flex items-center gap-2">
+                    <Calendar className="size-4 text-[#7B1E1E]"/> 
+                    <span className="font-medium">{news.date}</span>
+                </div>
+            )}
+
+            {/* Link Icon -> URL */}
             {news.url && (
               <a href={news.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-blue-600 hover:text-blue-800 hover:underline font-medium transition-colors">
                 <LinkIcon className="size-4"/> <span>Original Source</span>
@@ -93,7 +100,7 @@ export function NewsModal({ news, open, onClose }: NewsModalProps) {
             )}
           </div>
 
-          {/* 5. Article Body (THE FIX: No grey boxes, no italics, perfect paragraphs) */}
+          {/* Article Body */}
           <div className="text-lg text-slate-800 leading-relaxed space-y-5 tracking-wide">
             {news.summary.split('\n').map((paragraph, idx) => {
               const cleanParagraph = paragraph.trim();
