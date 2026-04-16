@@ -30,7 +30,6 @@ export default function Dashboard({ auth, stats, recentNews, carouselNews }: any
 
   return (
     <AuthenticatedLayout
-        header={<h2 className="font-semibold text-xl text-[#1A237E] leading-tight">Commander's Overview</h2>}
     >
       <Head title="Dashboard - EMC" />
       
@@ -161,7 +160,7 @@ export default function Dashboard({ auth, stats, recentNews, carouselNews }: any
                         <div className="absolute bottom-0 left-0 right-0 p-5">
                           <div className="flex items-center gap-2 mb-2">
                             <span className="px-2 py-0.5 bg-[#FBC02D] text-[#1A237E] text-[10px] font-bold uppercase tracking-widest rounded-sm shadow-sm">
-                              {news.media_outfit}
+                              {news.media_outlet}
                             </span>
                             <span className="text-white/90 text-xs font-medium drop-shadow-md">
                               {news.date}
@@ -212,7 +211,7 @@ export default function Dashboard({ auth, stats, recentNews, carouselNews }: any
                   recentNews.map((news: any) => (
                     <TableRow key={news.id} className="hover:bg-blue-50/30 transition-colors cursor-default">
                       <TableCell className="font-semibold text-slate-800 max-w-md truncate">{news.title}</TableCell>
-                      <TableCell className="text-slate-600 font-medium">{news.media_outfit}</TableCell>
+                      <TableCell className="text-slate-600 font-medium">{news.media_outlet}</TableCell>
                       <TableCell>
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
                           news.category === 'Favorable' ? 'bg-green-100 text-green-800 border border-green-200' :

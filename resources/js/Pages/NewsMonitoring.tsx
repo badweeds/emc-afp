@@ -88,11 +88,11 @@ export default function NewsMonitoring({ news = [] }: { news: NewsItem[] }) {
   });
 
   return (
-    <AuthenticatedLayout header={<h2 className="font-semibold text-xl text-slate-800 leading-tight">News Monitoring</h2>}>
+    <AuthenticatedLayout >
       <Head title="News Monitoring - EMC" />
 
-      <div className="space-y-6 max-w-7xl mx-auto p-6 lg:p-8">
-        
+      <div className="space-y-5 max-w-6xl mx-auto p-6 lg:p-0">
+          
         {/* Forced white background on the Header so it is always readable */}
         <div className="flex justify-between items-center bg-white p-6 rounded-xl shadow-sm border border-slate-200">
           <div>
@@ -271,7 +271,7 @@ function EditModal({ item, onClose }: { item: NewsItem; onClose: () => void }) {
             </Label>
             {imagePreview ? (
               <div className="relative w-full flex justify-center bg-white p-2 rounded-lg border border-slate-200 shadow-sm">
-                <img src={imagePreview} alt="Preview" className="max-h-56 w-auto object-contain rounded-md" />
+                <img src={imagePreview} alt="Preview" className="max-h-60 w-auto object-contain rounded-md" />
                 <button type="button" onClick={() => { setImagePreview(null); setData('image', null); }} className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full p-1.5 shadow-md hover:bg-red-600 hover:scale-110 transition-all"><X className="size-4" /></button>
               </div>
             ) : (

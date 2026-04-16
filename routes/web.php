@@ -5,6 +5,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use App\Models\NewsArticle;
+use App\Models\User;
 use Inertia\Inertia;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\NewsExport;
@@ -34,6 +35,37 @@ Route::get('/dashboard', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
+    
+    // --- SETTINGS & ACTIVE SESSIONS ---
+    Route::get('/settings', function () {
+        return Inertia::render('Settings', [
+            // This sends the 10 most recently active approved users to the Settings page
+            'activeUsers' => User::where('status', 'approved')
+                ->orderBy('updated_at', 'desc')
+                ->limit(10)
+                ->get()
+        ]);
+    })->name('settings');
+
+    // --- ADMIN ONLY: USER MANAGEMENT & APPROVALS ---
+    // Note: This matches the Sidebar link we created earlier
+    Route::get('/admin/users', function () {
+        return Inertia::render('UserManagement', [
+            'users' => User::orderBy('created_at', 'desc')->get()
+        ]);
+    })->name('admin.users');
+
+    Route::post('/admin/users/{user}/approve', function (User $user) {
+        $user->update(['status' => 'approved']);
+        return back();
+    })->name('admin.users.approve');
+
+    Route::delete('/admin/users/{user}', function (User $user) {
+        $user->delete();
+        return back();
+    })->name('admin.users.reject');
+
+    // --- NEWS OPERATIONS ---
     Route::get('/add-news', function () {
         return Inertia::render('AddNews');
     });
@@ -98,7 +130,7 @@ Route::middleware('auth')->group(function () {
         $response = curl_exec($ch);
         $err = curl_error($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        $close = curl_close($ch);
 
         if ($err) {
             return response()->json(['error' => 'cURL Error: ' . $err], 500);
@@ -154,7 +186,7 @@ Route::middleware('auth')->group(function () {
             'title' => 'required', 
             'summary' => 'required', 
             'media_outlet' => 'required',
-            'reporter' => 'nullable|string',
+            'reporter' => 'nullable|string', 
             'topic' => 'required', 
             'unit_involved' => 'required', 
             'category' => 'required',
@@ -179,21 +211,27 @@ Route::middleware('auth')->group(function () {
         $newsArticle->delete();
         return redirect()->back();
     });
+
+    // --- OTHER AUTH PAGES ---
+    Route::get('/monitoring', function () {
+        return Inertia::render('NewsMonitoring', ['news' => NewsArticle::orderBy('date', 'desc')->get()]);
+    })->name('monitoring');
+
+    Route::get('/analytics', function () {
+        return Inertia::render('Analytics', ['news' => NewsArticle::all()]);
+    })->name('analytics');
+
+    Route::get('/reports', function () {
+        return Inertia::render('Reports', ['news' => NewsArticle::orderBy('date', 'desc')->get()]);
+    })->name('reports');
+
+    // --- PROFILE MANAGEMENT ---
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-Route::get('/monitoring', function () {
-    return Inertia::render('NewsMonitoring', ['news' => NewsArticle::orderBy('date', 'desc')->get()]);
-})->middleware(['auth']);
-
-Route::get('/analytics', function () {
-    return Inertia::render('Analytics', ['news' => NewsArticle::all()]);
-})->middleware(['auth']);
-
-Route::get('/reports', function () {
-    return Inertia::render('Reports', ['news' => NewsArticle::orderBy('date', 'desc')->get()]);
-})->middleware(['auth']);
-
-// --- PERFECTLY FORMATTED DOCX EXPORT ---
+// --- EXPORTS (Auth Protected) ---
 Route::get('/export/docx', function (Request $request) {
     $from = $request->query('from');
     $to = $request->query('to');
@@ -202,7 +240,7 @@ Route::get('/export/docx', function (Request $request) {
     $phpWord = new PhpWord();
     $section = $phpWord->addSection();
     
-    // --- 1. COVER PAGE ---
+    // COVER PAGE
     $section->addTextBreak(2);
     $section->addText("TEAM EASTMINCOM", ['name' => 'Arial', 'size' => 36, 'bold' => true], ['alignment' => Jc::CENTER, 'spaceAfter' => 0]);
     $section->addTextBreak(1);
@@ -219,7 +257,7 @@ Route::get('/export/docx', function (Request $request) {
     
     $section->addPageBreak();
 
-    // --- 2. TABLE OF CONTENTS (SHORT SUMMARY) ---
+    // TABLE OF CONTENTS
     $section->addText("TABLE OF CONTENTS", ['name' => 'Arial', 'size' => 11, 'bold' => true], ['alignment' => Jc::CENTER, 'spaceAfter' => 0]);
     $redDate = "1700 " . date('d', strtotime($from)) . "- 1700 " . date('d F Y', strtotime($to));
     $section->addText($redDate, ['name' => 'Arial', 'size' => 12, 'bold' => true, 'color' => 'FF0000'], ['alignment' => Jc::CENTER, 'spaceAfter' => 0]);
@@ -246,36 +284,20 @@ Route::get('/export/docx', function (Request $request) {
 
     foreach ($news as $index => $item) {
         $table->addRow();
-        
         $table->addCell(1000)->addText($index + 1, ['name' => 'Arial', 'size' => 10], ['alignment' => Jc::CENTER, 'spaceAfter' => 0]);
-        
         $cell2 = $table->addCell(6500);
-        $cell2->addText($item->title, ['name' => 'Arial', 'size' => 10], ['spaceAfter' => 100]); // Plain text title like the picture
-        
-        // THE FIX: Extract ONLY the very first paragraph for a small summary in the table
+        $cell2->addText($item->title, ['name' => 'Arial', 'size' => 10], ['spaceAfter' => 100]);
         $paragraphs = explode("\n", $item->summary);
         $firstParagraph = '';
         foreach ($paragraphs as $p) {
             $p = trim($p);
-            if (!empty($p)) {
-                $firstParagraph = $p;
-                break; // Stop after the first paragraph!
-            }
+            if (!empty($p)) { $firstParagraph = $p; break; }
         }
-        
-        if (!empty($firstParagraph)) {
-            $cell2->addText($firstParagraph, ['name' => 'Arial', 'size' => 10], ['alignment' => Jc::BOTH, 'spaceAfter' => 100]);
-        }
-        
-        if($item->url) {
-            $cell2->addText($item->url, ['name' => 'Arial', 'size' => 9, 'color' => '0000FF', 'underline' => 'single'], ['spaceAfter' => 0]);
-        }
-
+        if (!empty($firstParagraph)) { $cell2->addText($firstParagraph, ['name' => 'Arial', 'size' => 10], ['alignment' => Jc::BOTH, 'spaceAfter' => 100]); }
+        if($item->url) { $cell2->addText($item->url, ['name' => 'Arial', 'size' => 9, 'color' => '0000FF', 'underline' => 'single'], ['spaceAfter' => 0]); }
         $cell3 = $table->addCell(2500);
         $cell3->addText($item->media_outlet, ['name' => 'Arial', 'bold' => true, 'size' => 10], ['alignment' => Jc::CENTER, 'spaceAfter' => 0]);
-        if (!empty($item->reporter)) {
-            $cell3->addText($item->reporter, ['name' => 'Arial', 'size' => 9], ['alignment' => Jc::CENTER, 'spaceAfter' => 0]);
-        }
+        if (!empty($item->reporter)) { $cell3->addText($item->reporter, ['name' => 'Arial', 'size' => 9], ['alignment' => Jc::CENTER, 'spaceAfter' => 0]); }
     }
 
     $section->addTextBreak(2);
@@ -286,61 +308,38 @@ Route::get('/export/docx', function (Request $request) {
     $c1->addTextBreak(2);
     $c1->addText("Allen D Guballo", ['name' => 'Arial', 'bold' => true], ['spaceAfter' => 0]);
     $c1->addText("AM            PAF", ['name' => 'Arial'], ['spaceAfter' => 0]);
-
     $c2 = $sigTable->addCell(5000);
     $c2->addText("Approved By:", ['name' => 'Arial', 'bold' => true], ['spaceAfter' => 0]);
     $c2->addTextBreak(2);
     $c2->addText("Ryann R Velez", ['name' => 'Arial', 'bold' => true], ['spaceAfter' => 0]);
-    $c2->addText("MAJ    (Inf) PA", ['name' => 'Arial'], ['spaceAfter' => 0]);
+    $c2->addText("MAJ     (Inf) PA", ['name' => 'Arial'], ['spaceAfter' => 0]);
 
-
-    // --- 3. FULL NEWS CLIPPINGS (WITH WRAPPED IMAGES) ---
+    // NEWS CLIPPINGS
     $section->addPageBreak();
-
     foreach ($news as $index => $item) {
-        
-        // 1. Print Number and Title (Bold)
         $section->addText(($index + 1) . ". " . $item->title, ['name' => 'Arial', 'bold' => true, 'size' => 12], ['spaceBefore' => 200, 'spaceAfter' => 100]);
-
-        // 2. THE FIX: Image with "Square" Wrapping so text wraps to the right
         if (!empty($item->image_path)) {
             $imageLocation = storage_path('app/public/' . str_replace('\\', '/', $item->image_path));
-            
             if (file_exists($imageLocation)) {
                 try {
                     $section->addImage($imageLocation, [
-                        'width'         => 250, // Half page width
-                        'wrappingStyle' => 'square', // This forces text to wrap around it!
-                        'positioning'   => 'absolute',
+                        'width' => 250, 
+                        'wrappingStyle' => 'square', 
+                        'positioning' => 'absolute',
                         'posHorizontal' => 'left',
-                        'posHorizontalRel' => 'column',
-                        'posVerticalRel'  => 'line',
-                        'marginTop'       => 5,
-                        'marginRight'     => 10,
+                        'marginTop' => 5,
+                        'marginRight' => 10,
                     ]);
-                } catch (\Exception $e) {
-                    // Fail silently if image is corrupted/unsupported so the report still generates
-                }
+                } catch (\Exception $e) {}
             }
         }
-
-        // 3. Print Media Outlet / Reporter (Optional, based on your screenshot you might not even want this here, but I kept it small)
-        $publisherAuthor = $item->media_outlet;
-        if (!empty($item->reporter)) {
-            $publisherAuthor .= " | " . $item->reporter;
-        }
+        $publisherAuthor = $item->media_outlet . ($item->reporter ? " | " . $item->reporter : "");
         $section->addText($publisherAuthor, ['name' => 'Arial', 'italic' => true, 'size' => 10, 'color' => '555555'], ['spaceAfter' => 100]);
-
-        // 4. Print the FULL body of the article (It will automatically wrap around the image)
         $paragraphs = explode("\n", $item->summary);
         foreach ($paragraphs as $p) {
             $p = trim($p);
-            if (!empty($p)) {
-                $section->addText($p, ['name' => 'Arial', 'size' => 11], ['alignment' => Jc::BOTH, 'spaceAfter' => 100]);
-            }
+            if (!empty($p)) { $section->addText($p, ['name' => 'Arial', 'size' => 11], ['alignment' => Jc::BOTH, 'spaceAfter' => 100]); }
         }
-
-        // Add a clean break between articles
         $section->addTextBreak(2);
     }
 
@@ -348,7 +347,6 @@ Route::get('/export/docx', function (Request $request) {
     $fileName = "EMC_News_Clippings_" . date('Y-m-d') . ".docx";
     $tempFile = tempnam(sys_get_temp_dir(), $fileName);
     $objWriter->save($tempFile);
-
     return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
 })->middleware(['auth']);
 
@@ -356,18 +354,11 @@ Route::get('/export/excel', function () {
     return Excel::download(new NewsExport, 'PIO_EMC_Yearly_News_Data.xlsx');
 })->middleware(['auth']);
 
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-});
-
+// --- IMAGE HANDLING ---
 Route::get('/news-image/{path}', function ($path) {
     $cleanPath = str_replace('\\', '/', $path);
     $filePath = storage_path('app/public/' . $cleanPath);
-    if (!file_exists($filePath)) {
-        abort(404);
-    }
+    if (!file_exists($filePath)) { abort(404); }
     return response()->file($filePath);
 })->where('path', '.*');
 

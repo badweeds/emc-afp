@@ -6,11 +6,18 @@ import {
   BarChart3, 
   FileText, 
   LogOut,
-  Shield
+  Shield,
+  Users,
+  Settings as SettingsIcon
 } from 'lucide-react';
 
 export default function Sidebar() {
-  const { url } = usePage();
+  // THE FIX: Correctly extract url from the page object, and auth from the props
+  const { url, props } = usePage<any>();
+  const auth = props.auth;
+  
+  // Security check: Only Admins can see the User Management link
+  const isAdmin = auth.user.role === 'admin';
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -21,18 +28,15 @@ export default function Sidebar() {
   ];
 
   return (
-    // Updated to Command Navy Background
     <div className="fixed left-0 top-0 h-screen w-64 flex flex-col bg-[#1A237E] text-white shadow-2xl z-50">
       
       {/* Brand Header */}
       <div className="flex h-20 items-center justify-center border-b border-white/10 px-6 py-4">
         <div className="flex items-center gap-3">
-          {/* Logo Icon - Gold Background with Navy Shield */}
           <div className="rounded-lg bg-[#FBC02D] p-2 shadow-lg">
             <Shield className="size-6 text-[#1A237E]" />
           </div>
           <div className="flex flex-col">
-            {/* Split Typography Color */}
             <span className="text-lg font-bold tracking-tighter leading-tight italic">
               <span className="text-white">EMC </span>
               <span className="text-[#FBC02D]">NEWS</span>
@@ -45,6 +49,7 @@ export default function Sidebar() {
       {/* Navigation Links */}
       <nav className="flex-1 space-y-1 px-4 py-6">
         {navigation.map((item) => {
+          // url is now correctly defined, so .startsWith() will work!
           const isActive = url.startsWith(item.href);
           return (
             <Link
@@ -52,8 +57,8 @@ export default function Sidebar() {
               href={item.href}
               className={`group flex items-center px-4 py-3 text-sm font-bold transition-all duration-200 rounded-lg ${
                 isActive 
-                  ? 'bg-[#FBC02D] text-[#1A237E] shadow-md border-l-4 border-white' // Gold active state with Navy text
-                  : 'text-slate-300 hover:bg-white/10 hover:text-white' // Clean hover for Navy background
+                  ? 'bg-[#FBC02D] text-[#1A237E] shadow-md border-l-4 border-white' 
+                  : 'text-slate-300 hover:bg-white/10 hover:text-white'
               }`}
             >
               <item.icon className={`mr-3 size-5 ${isActive ? 'text-[#1A237E]' : 'text-slate-400 group-hover:text-white'}`} />
@@ -61,6 +66,34 @@ export default function Sidebar() {
             </Link>
           );
         })}
+
+        {/* ADMIN ONLY SECTION */}
+        {isAdmin && (
+          <Link
+            href="/admin/users"
+            className={`group flex items-center px-4 py-3 text-sm font-bold transition-all duration-200 rounded-lg mt-4 ${
+              url.startsWith('/admin/users') 
+                ? 'bg-[#FBC02D] text-[#1A237E] shadow-md border-l-4 border-white' 
+                : 'text-slate-300 hover:bg-white/10 hover:text-white'
+            }`}
+          >
+            <Users className={`mr-3 size-5 ${url.startsWith('/admin/users') ? 'text-[#1A237E]' : 'text-slate-400 group-hover:text-white'}`} />
+            User Approval
+          </Link>
+        )}
+
+        {/* SETTINGS SECTION */}
+        <Link
+          href="/settings"
+          className={`group flex items-center px-4 py-3 text-sm font-bold transition-all duration-200 rounded-lg ${
+            url.startsWith('/settings') 
+              ? 'bg-[#FBC02D] text-[#1A237E] shadow-md border-l-4 border-white' 
+              : 'text-slate-300 hover:bg-white/10 hover:text-white'
+          }`}
+        >
+          <SettingsIcon className={`mr-3 size-5 ${url.startsWith('/settings') ? 'text-[#1A237E]' : 'text-slate-400 group-hover:text-white'}`} />
+          Settings
+        </Link>
       </nav>
 
       {/* Logout & Footer */}
