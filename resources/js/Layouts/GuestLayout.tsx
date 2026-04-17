@@ -13,10 +13,13 @@ export default function Guest({ children }: PropsWithChildren) {
                 <div className="relative z-10 flex flex-col items-center text-center">
                     
                     {/* LOGO AREA */}
-                    <div className="size-40 bg-white/10 p-2 rounded-full backdrop-blur-md border border-white/20 mb-8 flex items-center justify-center shadow-2xl">
-                        {/* TIP: Place your logo in /public/images/emc-logo.png and use an <img /> tag here */}
-                        <ShieldAlert className="size-20 text-yellow-500" />
-                    </div>
+<div className="size-40 bg-white/10 p-1.5 rounded-full backdrop-blur-md border border-white/20 mb-8 flex items-center justify-center shadow-2xl overflow-hidden">
+    <img 
+        src="/images/emc-logo.png" 
+        alt="EMC Logo" 
+        className="w-full h-full object-contain rounded-full bg-white" 
+    />
+</div>
 
                     <h2 className="text-xl md:text-2xl font-bold text-yellow-500 tracking-widest uppercase mb-2">
                         Armed Forces of the Philippines
