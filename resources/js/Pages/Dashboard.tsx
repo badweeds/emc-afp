@@ -37,7 +37,7 @@ export default function Dashboard({ auth, stats, recentNews, carouselNews }: any
         
         <div className="flex justify-between items-end">
           <div>
-            <h1 className="text-3xl font-bold text-[#1A237E] tracking-tight">Dashboard</h1>
+            <h1 className="text-3xl font-bold text-[#1E293B] tracking-tight">Dashboard</h1>
             <p className="text-gray-500 mt-1 uppercase text-xs font-bold tracking-widest">
               Strategic News Intelligence Overview
             </p>

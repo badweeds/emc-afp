@@ -6,13 +6,11 @@ import {
   BarChart3, 
   FileText, 
   LogOut,
-  Shield,
   Users,
   Settings as SettingsIcon
 } from 'lucide-react';
 
 export default function Sidebar() {
-  // THE FIX: Correctly extract url from the page object, and auth from the props
   const { url, props } = usePage<any>();
   const auth = props.auth;
   
@@ -33,9 +31,19 @@ export default function Sidebar() {
       {/* Brand Header */}
       <div className="flex h-20 items-center justify-center border-b border-white/10 px-6 py-4">
         <div className="flex items-center gap-3">
-          <div className="rounded-lg bg-[#FBC02D] p-2 shadow-lg">
-            <Shield className="size-6 text-[#1A237E]" />
+          
+          {/* THE FIX: Replaced Shield Icon with the Real EMC Logo */}
+          <div className="size-12.5 bg-white rounded-lg flex items-center justify-center shadow-lg overflow-hidden border-3 border-[#FBC02D]">
+            <img 
+                src="/images/emc-logo.jpg" 
+                alt="EMC Logo" 
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                    (e.target as HTMLImageElement).src = '/images/EMC%20Logo.jpg';
+                }}
+            />
           </div>
+
           <div className="flex flex-col">
             <span className="text-lg font-bold tracking-tighter leading-tight italic">
               <span className="text-white">EMC </span>
@@ -49,7 +57,6 @@ export default function Sidebar() {
       {/* Navigation Links */}
       <nav className="flex-1 space-y-1 px-4 py-6">
         {navigation.map((item) => {
-          // url is now correctly defined, so .startsWith() will work!
           const isActive = url.startsWith(item.href);
           return (
             <Link

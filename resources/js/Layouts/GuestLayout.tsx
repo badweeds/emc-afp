@@ -1,6 +1,4 @@
-import { Link } from '@inertiajs/react';
 import { PropsWithChildren } from 'react';
-import { ShieldAlert } from 'lucide-react';
 
 export default function Guest({ children }: PropsWithChildren) {
     return (
@@ -12,10 +10,17 @@ export default function Guest({ children }: PropsWithChildren) {
 
                 <div className="relative z-10 flex flex-col items-center text-center">
                     
-                    {/* LOGO AREA */}
-                    <div className="size-40 bg-white/10 p-2 rounded-full backdrop-blur-md border border-white/20 mb-8 flex items-center justify-center shadow-2xl">
-                        {/* TIP: Place your logo in /public/images/emc-logo.png and use an <img /> tag here */}
-                        <ShieldAlert className="size-20 text-yellow-500" />
+                    {/* THE FIX: Swapped the icon for your actual EMC Logo image */}
+                    <div className="size-62 bg-white p-1.5 rounded-full border-4 border-yellow-500 mb-8 flex items-center justify-center shadow-2xl overflow-hidden relative z-20">
+                        <img 
+                            src="/images/emc-logo.jpg"
+                            alt="EMC Logo" 
+                            className="w-full h-full object-cover rounded-full"
+                            onError={(e) => {
+                                // Fallback just in case the browser can't find the image due to spaces in the name
+                                (e.target as HTMLImageElement).src = '/images/EMC%20Logo.jpg';
+                            }}
+                        />
                     </div>
 
                     <h2 className="text-xl md:text-2xl font-bold text-yellow-500 tracking-widest uppercase mb-2">
@@ -40,7 +45,6 @@ export default function Guest({ children }: PropsWithChildren) {
             {/* RIGHT PANEL - Content Area (Login/Register Forms) */}
             <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 bg-white dark:bg-gray-900">
                 <div className="w-full max-w-md">
-                    {/* The specific Form (Login or Register) is injected here */}
                     <div className="bg-white dark:bg-gray-800 p-2">
                         {children}
                     </div>
