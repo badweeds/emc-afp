@@ -1,4 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
+import { motion } from 'framer-motion'; // Added Framer Motion
 import { 
   LayoutDashboard, 
   PlusCircle, 
@@ -10,11 +11,26 @@ import {
   Settings as SettingsIcon
 } from 'lucide-react';
 
+// --- Animation Configurations ---
+const sidebarVariants = {
+  hidden: { x: -260 },
+  visible: { 
+    x: 0, 
+    transition: { type: 'spring', stiffness: 300, damping: 30, staggerChildren: 0.1 } 
+  }
+};
+
+const linkVariants = {
+  hidden: { opacity: 0, x: -20 },
+  visible: { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } },
+  hover: { scale: 1.02, x: 5, transition: { type: 'spring', stiffness: 400, damping: 10 } },
+  tap: { scale: 0.95 }
+};
+
 export default function Sidebar() {
   const { url, props } = usePage<any>();
   const auth = props.auth;
   
-  // Security check: Only Admins can see the User Management link
   const isAdmin = auth.user.role === 'admin';
 
   const navigation = [
@@ -26,14 +42,23 @@ export default function Sidebar() {
   ];
 
   return (
-    <div className="fixed left-0 top-0 h-screen w-64 flex flex-col bg-[#1A237E] text-white shadow-2xl z-50">
+    // Changed standard <div> to <motion.div> to enable animation
+    <motion.div 
+      initial="hidden"
+      animate="visible"
+      variants={sidebarVariants}
+      className="fixed left-0 top-0 h-screen w-64 flex flex-col bg-[#1A237E] text-white shadow-2xl z-50"
+    >
       
       {/* Brand Header */}
       <div className="flex h-20 items-center justify-center border-b border-white/10 px-6 py-4">
-        <div className="flex items-center gap-3">
-          
-          {/* THE FIX: Replaced Shield Icon with the Real EMC Logo */}
-          <div className="size-12.5 bg-white rounded-lg flex items-center justify-center shadow-lg overflow-hidden border-3 border-[#FBC02D]">
+        <motion.div 
+            initial={{ scale: 0 }} 
+            animate={{ scale: 1 }} 
+            transition={{ delay: 0.2, type: 'spring', stiffness: 200, damping: 15 }}
+            className="flex items-center gap-3"
+        >
+          <div className="size-12 bg-white rounded-lg flex items-center justify-center shadow-lg overflow-hidden border-2 border-[#FBC02D]">
             <img 
                 src="/images/emc-logo.jpg" 
                 alt="EMC Logo" 
@@ -51,7 +76,7 @@ export default function Sidebar() {
             </span>
             <span className="text-[10px] text-slate-300 uppercase tracking-widest font-semibold">Eastmincom AFP</span>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* Navigation Links */}
@@ -59,65 +84,75 @@ export default function Sidebar() {
         {navigation.map((item) => {
           const isActive = url.startsWith(item.href);
           return (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={`group flex items-center px-4 py-3 text-sm font-bold transition-all duration-200 rounded-lg ${
-                isActive 
-                  ? 'bg-[#FBC02D] text-[#1A237E] shadow-md border-l-4 border-white' 
-                  : 'text-slate-300 hover:bg-white/10 hover:text-white'
-              }`}
-            >
-              <item.icon className={`mr-3 size-5 ${isActive ? 'text-[#1A237E]' : 'text-slate-400 group-hover:text-white'}`} />
-              {item.name}
-            </Link>
+            <motion.div key={item.name} variants={linkVariants} whileHover="hover" whileTap="tap">
+              <Link
+                href={item.href}
+                className={`group flex items-center px-4 py-3 text-sm font-bold transition-colors duration-200 rounded-lg ${
+                  isActive 
+                    ? 'bg-[#FBC02D] text-[#1A237E] shadow-md border-l-4 border-white' 
+                    : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                <item.icon className={`mr-3 size-5 ${isActive ? 'text-[#1A237E]' : 'text-slate-400 group-hover:text-white'}`} />
+                {item.name}
+              </Link>
+            </motion.div>
           );
         })}
 
         {/* ADMIN ONLY SECTION */}
         {isAdmin && (
+          <motion.div variants={linkVariants} whileHover="hover" whileTap="tap">
+            <Link
+              href="/admin/users"
+              className={`group flex items-center px-4 py-3 text-sm font-bold transition-colors duration-200 rounded-lg mt-4 ${
+                url.startsWith('/admin/users') 
+                  ? 'bg-[#FBC02D] text-[#1A237E] shadow-md border-l-4 border-white' 
+                  : 'text-slate-300 hover:bg-white/10 hover:text-white'
+              }`}
+            >
+              <Users className={`mr-3 size-5 ${url.startsWith('/admin/users') ? 'text-[#1A237E]' : 'text-slate-400 group-hover:text-white'}`} />
+              User Approval
+            </Link>
+          </motion.div>
+        )}
+
+        {/* SETTINGS SECTION */}
+        <motion.div variants={linkVariants} whileHover="hover" whileTap="tap">
           <Link
-            href="/admin/users"
-            className={`group flex items-center px-4 py-3 text-sm font-bold transition-all duration-200 rounded-lg mt-4 ${
-              url.startsWith('/admin/users') 
+            href="/settings"
+            className={`group flex items-center px-4 py-3 text-sm font-bold transition-colors duration-200 rounded-lg ${
+              url.startsWith('/settings') 
                 ? 'bg-[#FBC02D] text-[#1A237E] shadow-md border-l-4 border-white' 
                 : 'text-slate-300 hover:bg-white/10 hover:text-white'
             }`}
           >
-            <Users className={`mr-3 size-5 ${url.startsWith('/admin/users') ? 'text-[#1A237E]' : 'text-slate-400 group-hover:text-white'}`} />
-            User Approval
+            <SettingsIcon className={`mr-3 size-5 ${url.startsWith('/settings') ? 'text-[#1A237E]' : 'text-slate-400 group-hover:text-white'}`} />
+            Settings
           </Link>
-        )}
-
-        {/* SETTINGS SECTION */}
-        <Link
-          href="/settings"
-          className={`group flex items-center px-4 py-3 text-sm font-bold transition-all duration-200 rounded-lg ${
-            url.startsWith('/settings') 
-              ? 'bg-[#FBC02D] text-[#1A237E] shadow-md border-l-4 border-white' 
-              : 'text-slate-300 hover:bg-white/10 hover:text-white'
-          }`}
-        >
-          <SettingsIcon className={`mr-3 size-5 ${url.startsWith('/settings') ? 'text-[#1A237E]' : 'text-slate-400 group-hover:text-white'}`} />
-          Settings
-        </Link>
+        </motion.div>
       </nav>
 
       {/* Logout & Footer */}
-      <div className="border-t border-white/10 p-4 space-y-1 text-center">
-        <Link
-          href={route('logout')}
-          method="post"
-          as="button"
-          className="flex w-full items-center rounded-lg px-4 py-3 text-sm font-medium text-red-400 transition-all hover:bg-red-500/10 hover:text-red-300"
-        >
-          <LogOut className="mr-3 size-5" />
-          Log Out
-        </Link>
+      <motion.div 
+        variants={linkVariants}
+        className="border-t border-white/10 p-4 space-y-1 text-center"
+      >
+        <motion.div whileHover="hover" whileTap="tap">
+          <Link
+            href={route('logout')}
+            method="post"
+            as="button"
+            className="flex w-full items-center rounded-lg px-4 py-3 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/10 hover:text-red-300"
+          >
+            <LogOut className="mr-3 size-5" />
+            Log Out
+          </Link>
+        </motion.div>
         <p className="mt-4 text-[10px] font-bold text-slate-400 tracking-widest uppercase italic pb-2">
           "Para sa Bayan"
         </p>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
