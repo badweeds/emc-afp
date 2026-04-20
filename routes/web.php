@@ -225,10 +225,9 @@ Route::middleware('auth')->group(function () {
         return Inertia::render('Reports', ['news' => NewsArticle::orderBy('date', 'desc')->get()]);
     })->name('reports');
 
-    // --- PROFILE MANAGEMENT ---
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    // --- SETTINGS (Profile & Password Updates) ---
+    Route::patch('/settings/profile', [ProfileController::class, 'update'])->name('settings.profile.update');
+    Route::delete('/settings/account', [ProfileController::class, 'destroy'])->name('settings.account.destroy');
 });
 
 // --- EXPORTS (Auth Protected) ---

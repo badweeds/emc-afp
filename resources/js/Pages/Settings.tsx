@@ -11,7 +11,8 @@ import {
   Lock, 
   ShieldCheck, 
   Activity, 
-  Clock
+  Clock,
+  AlertTriangle
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -19,7 +20,7 @@ export default function Settings({ activeUsers = [] }: { activeUsers?: any[] }) 
   const { auth } = usePage<any>().props;
   const isAdmin = auth.user.role === 'admin';
 
-  // --- Helper Function: Calculate relative time (e.g. "2 mins ago") ---
+  // --- Helper Function: Calculate relative time ---
   const timeAgo = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -34,7 +35,6 @@ export default function Settings({ activeUsers = [] }: { activeUsers?: any[] }) 
     return `${days} day${days > 1 ? 's' : ''} ago`;
   };
 
-  // Filter out the current user so they don't appear in the "Other Personnel" list
   const otherActiveUsers = activeUsers.filter(u => u.id !== auth.user.id);
 
   // --- 1. Profile Update Form ---
@@ -51,7 +51,8 @@ export default function Settings({ activeUsers = [] }: { activeUsers?: any[] }) 
 
   const handleUpdateProfile = (e: React.FormEvent) => {
     e.preventDefault();
-    patchProfile(route('profile.update'), {
+    // Pointing to the new route name we created in web.php
+    patchProfile(route('settings.profile.update'), {
       onSuccess: () => toast.success('Profile updated successfully!'),
       preserveScroll: true,
     });
@@ -83,11 +84,33 @@ export default function Settings({ activeUsers = [] }: { activeUsers?: any[] }) 
     });
   };
 
+  // --- 3. Delete Account Form (NON-ADMINS ONLY) ---
+  const {
+    data: deleteData,
+    setData: setDeleteData,
+    delete: deleteUser,
+    processing: deleteProcessing,
+    errors: deleteErrors,
+  } = useForm({
+    password: '',
+  });
+
+  const handleDeleteAccount = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (confirm("Are you absolutely sure you want to delete your account? This action cannot be undone.")) {
+        // Pointing to the new route name we created in web.php
+        deleteUser(route('settings.account.destroy'), {
+            onSuccess: () => toast.success('Account deleted.'),
+            preserveScroll: true,
+        });
+    }
+  };
+
   return (
-    <AuthenticatedLayout >
+    <AuthenticatedLayout>
       <Head title="Settings - EMC" />
 
-      <div className="space-y-2 max-w-5xl mx-auto p-6 lg:p-0">
+      <div className="space-y-6 max-w-5xl mx-auto p-6 lg:p-2">
         
         {/* Header - Minimalist Style */}
         <div className="flex flex-col gap-1 mb-2">
@@ -188,6 +211,37 @@ export default function Settings({ activeUsers = [] }: { activeUsers?: any[] }) 
                 </form>
               </CardContent>
             </Card>
+
+            {/* Delete Account Card (Hidden from Admins) */}
+            {!isAdmin && (
+                <Card className="shadow-md bg-red-50 border border-red-200 border-t-4 border-t-red-600">
+                <CardHeader className="border-b border-red-200/50 pb-4">
+                    <CardTitle className="flex items-center gap-2 text-red-700">
+                    <AlertTriangle className="size-5" /> Danger Zone
+                    </CardTitle>
+                    <CardDescription className="text-red-600/80">Once your account is deleted, all of its resources and data will be permanently deleted.</CardDescription>
+                </CardHeader>
+                <CardContent className="pt-6">
+                    <form onSubmit={handleDeleteAccount} className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="delete_password" className="text-red-700">Confirm Password to Delete</Label>
+                        <Input 
+                            id="delete_password" 
+                            type="password" 
+                            placeholder="Enter your password"
+                            value={deleteData.password}
+                            onChange={e => setDeleteData('password', e.target.value)}
+                            className="bg-white border-red-200 focus:ring-red-500"
+                        />
+                        {deleteErrors.password && <p className="text-red-600 text-xs font-bold">{deleteErrors.password}</p>}
+                    </div>
+                    <Button variant="destructive" disabled={deleteProcessing} className="bg-red-600 hover:bg-red-700">
+                        Delete Account
+                    </Button>
+                    </form>
+                </CardContent>
+                </Card>
+            )}
           </div>
 
           {/* RIGHT COLUMN: Real-Time Login Monitoring (ADMIN ONLY) */}

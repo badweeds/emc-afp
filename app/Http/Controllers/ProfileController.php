@@ -37,7 +37,8 @@ class ProfileController extends Controller
 
         $request->user()->save();
 
-        return Redirect::route('profile.edit');
+        // Redirect back to the new settings page instead of the old profile route
+        return Redirect::route('settings')->with('status', 'profile-updated');
     }
 
     /**
@@ -58,6 +59,7 @@ class ProfileController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return Redirect::to('/');
+        // Redirect directly to the login screen after account deletion
+        return Redirect::to('/login');
     }
 }
