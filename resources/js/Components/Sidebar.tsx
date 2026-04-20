@@ -51,7 +51,7 @@ export default function Sidebar() {
     >
       
       {/* Brand Header */}
-      <div className="flex h-20 items-center justify-center border-b border-white/10 px-6 py-4">
+      <div className="flex h-16 items-center justify-center border-b border-white/30 px-6 py-4">
         <motion.div 
             initial={{ scale: 0 }} 
             animate={{ scale: 1 }} 
@@ -74,7 +74,7 @@ export default function Sidebar() {
               <span className="text-white">EMC </span>
               <span className="text-[#FBC02D]">NEWS</span>
             </span>
-            <span className="text-[10px] text-slate-300 uppercase tracking-widest font-semibold">Eastmincom AFP</span>
+            <span className="text-[10px] text-slate-290 uppercase tracking-widest font-semibold">Eastmincom AFP</span>
           </div>
         </motion.div>
       </div>
