@@ -13,6 +13,7 @@ use App\Exports\NewsExport;
 use PhpOffice\PhpWord\PhpWord;
 use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\SimpleType\Jc;
+use Illuminate\Support\Str;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -236,6 +237,15 @@ Route::get('/export/docx', function (Request $request) {
     $to = $request->query('to');
     $news = NewsArticle::whereBetween('date', [$from, $to])->orderBy('date', 'asc')->get();
     
+    // Fetch Top 3 Critical News for the CIEMA Section
+    $criticalNews = NewsArticle::whereBetween('date', [$from, $to])
+                    ->where('category', 'Unfavorable')
+                    ->limit(3)
+                    ->get();
+
+    // !!! XML PARSING FIX (Crucial for preventing Word corruption with &, <, > characters) !!!
+    \PhpOffice\PhpWord\Settings::setOutputEscapingEnabled(true);
+
     $phpWord = new PhpWord();
     $section = $phpWord->addSection();
     
@@ -256,6 +266,82 @@ Route::get('/export/docx', function (Request $request) {
     
     $section->addPageBreak();
 
+    // =========================================================================
+    // CIEMA REPORT PAGE (v.3 Addition)
+    // =========================================================================
+    $section->addText("COMMANDER’S INFORMATION ENVIRONMENT MONITORING & ASSESSMENT (CIEMA)", ['name' => 'Arial', 'size' => 12, 'bold' => true], ['alignment' => Jc::CENTER]);
+    $timeRange = "1700H " . date('d', strtotime($from)) . " – 1700H " . date('d F Y', strtotime($to));
+    $section->addText($timeRange, ['name' => 'Arial', 'size' => 11, 'bold' => true], ['alignment' => Jc::CENTER]);
+    $section->addTextBreak(1);
+
+    // Section 1: IE Status
+    $section->addText("1. INFORMATION ENVIRONMENT STATUS: HIGHLY SENSITIVE SOVEREIGNTY AND ENVIRONMENTAL SECURITY NARRATIVE WITH STRONG ALLIANCE AND INTERNAL STABILITY DRIVERS", ['name' => 'Arial', 'size' => 11, 'bold' => true]);
+    $section->addText("The Information Environment during the reporting period is highly sensitive and strategically elevated, driven by intensified maritime security and environmental concerns in the West Philippine Sea (WPS). Reports alleging the use of cyanide by Chinese maritime militia near the BRP Sierra Madre significantly heighten the gravity of the situation, expanding the narrative from sovereignty disputes to environmental degradation and threats to personnel and resources. This development amplifies national and international attention and reinforces urgency in maritime protection efforts.", ['name' => 'Arial', 'size' => 10], ['alignment' => Jc::BOTH]);
+    $section->addText("Simultaneously, alliance-driven narratives remain prominent through ongoing multilateral maritime cooperative activities involving the Philippines, United States, and Australia. These joint drills, particularly focused on logistics interoperability, reinforce collective security posture and operational readiness in the WPS, contributing to deterrence and regional stability.", ['name' => 'Arial', 'size' => 10], ['alignment' => Jc::BOTH]);
+    $section->addText("At the regional level, the Information Environment remains stable and institutionally positive, supported by sustained civil-military operations and internal security gains. Initiatives such as joint coastal patrols and whole-of-nation peace and development approaches highlight continued community engagement and the consolidation of gains against insurgent threats.", ['name' => 'Arial', 'size' => 10], ['alignment' => Jc::BOTH]);
+
+    // Section 2: Top 3 Critical
+    $section->addText("2. TOP 3 CRITICAL CASUALTIES & DISPLACEMENT", ['name' => 'Arial', 'size' => 11, 'bold' => true]);
+    foreach ($criticalNews as $item) {
+        $section->addText($item->title, ['name' => 'Arial', 'size' => 10, 'bold' => true]);
+        $paragraphs = explode("\n", $item->summary);
+        $firstParagraph = '';
+        foreach ($paragraphs as $p) {
+            $p = trim($p);
+            if (!empty($p)) { $firstParagraph = $p; break; }
+        }
+        $section->addText(Str::limit($firstParagraph, 300), ['name' => 'Arial', 'size' => 10], ['alignment' => Jc::BOTH]);
+    }
+    $section->addTextBreak(1);
+
+    // Section 3: Risk Assessment Table
+    $section->addText("3. RISK ASSESSMENT SNAPSHOT (TABULATED)", ['name' => 'Arial', 'size' => 11, 'bold' => true]);
+    $riskTableStyle = ['borderSize' => 6, 'borderColor' => '000000', 'cellMargin' => 50];
+    $phpWord->addTableStyle('RiskTable', $riskTableStyle);
+    $tableRisk = $section->addTable('RiskTable');
+    $tableRisk->addRow();
+    foreach(['Issue', 'HIS', 'MAL', 'IE', 'NV', 'SS', 'TTL', 'Risk Level'] as $header) {
+        $tableRisk->addCell(1500, ['bgColor' => 'EEEEEE'])->addText($header, ['bold' => true, 'size' => 9], ['alignment' => Jc::CENTER]);
+    }
+    if ($criticalNews->count() > 0) {
+        $tableRisk->addRow();
+        $tableRisk->addCell(3000)->addText($criticalNews->first()->topic ?? 'Security Threat', ['size' => 9]);
+        foreach([5, 5, 5, 4, 5, 24] as $val) {
+            $tableRisk->addCell(500)->addText($val, ['size' => 9], ['alignment' => Jc::CENTER]);
+        }
+        $tableRisk->addCell(1500, ['bgColor' => 'FF0000'])->addText("CRITICAL", ['size' => 9, 'bold' => true, 'color' => 'FFFFFF'], ['alignment' => Jc::CENTER]);
+    }
+    $section->addTextBreak(1);
+
+    // Section 4: Narrative Trend
+    $section->addText("4. NARRATIVE TREND", ['name' => 'Arial', 'size' => 11, 'bold' => true]);
+    $section->addText("The dominant narrative during the reporting period is sovereignty-driven with a strong environmental security dimension. The alleged cyanide use near Ayungin Shoal introduces a critical shift in discourse, linking maritime disputes to ecological damage, food security risks, and potential harm to deployed personnel. This significantly elevates the sensitivity and urgency of the information environment.", ['name' => 'Arial', 'size' => 10], ['alignment' => Jc::BOTH]);
+    $section->addText("Adversarial framing is highly evident, with foreign maritime activities portrayed as both coercive and destructive. This reinforces a defensive national posture and strengthens calls for accountability and adherence to international law.", ['name' => 'Arial', 'size' => 10], ['alignment' => Jc::BOTH]);
+    $section->addText("Meanwhile, alliance-driven narratives remain strong, with joint exercises highlighting interoperability and collective deterrence. Internal narratives remain stable and positive, driven by sustained peace-building gains and proactive civil-military engagement. The overall direction is escalating at the strategic level while stable domestically.", ['name' => 'Arial', 'size' => 10], ['alignment' => Jc::BOTH]);
+    $section->addTextBreak(1);
+
+    // Section 5: Opportunities
+    $section->addText("5. OPPORTUNITIES FOR COMMAND EXPLOITATION", ['name' => 'Arial', 'size' => 11, 'bold' => true]);
+    $section->addListItem("Reinforce messaging on protection of maritime environment, resources, and personnel in the West Philippine Sea.", 0, ['name' => 'Arial', 'size' => 10]);
+    $section->addListItem("Highlight multilateral cooperation as a force multiplier for deterrence and operational readiness.", 0, ['name' => 'Arial', 'size' => 10]);
+    $section->addListItem("Amplify internal security gains and whole-of-nation peace-building initiatives.", 0, ['name' => 'Arial', 'size' => 10]);
+    $section->addListItem("Promote civil-military maritime patrols and community security efforts.", 0, ['name' => 'Arial', 'size' => 10]);
+    $section->addTextBreak(1);
+
+    // Section 6: Recommendation
+    $section->addText("6. RECOMMENDATION", ['name' => 'Arial', 'size' => 11, 'bold' => true]);
+    $section->addListItem("Intensify strategic communication on environmental protection and sovereignty in maritime areas.", 0, ['name' => 'Arial', 'size' => 10]);
+    $section->addListItem("Enhance monitoring of adversarial narratives and external influence operations.", 0, ['name' => 'Arial', 'size' => 10]);
+    $section->addListItem("Sustain messaging on alliance cooperation and interoperability benefits.", 0, ['name' => 'Arial', 'size' => 10]);
+    $section->addListItem("Continue highlighting internal stability and peace-building successes to maintain public confidence.", 0, ['name' => 'Arial', 'size' => 10]);
+    $section->addTextBreak(1);
+
+    // CIEMA Summary
+    $section->addText("CIEMA SUMMARY: The Information Environment for " . $timeRange . " is highly sensitive and strategically elevated, driven by allegations of environmental harm in the West Philippine Sea and continued sovereignty tensions. Strong alliance cooperation and sustained internal security gains help maintain stability despite escalating external pressures. No AFP-attributable operational casualties were reported.", ['name' => 'Arial', 'size' => 10, 'italic' => true]);
+    $section->addText("Legend: HIS - Human Impact Severity; MAL - Media Amplification Level; IE - Institutional Exposure; NV - Narrative Volatility; and, SS - Strategic Sensitivity", ['name' => 'Arial', 'size' => 8]);
+
+    $section->addPageBreak();
+
     // TABLE OF CONTENTS
     $section->addText("TABLE OF CONTENTS", ['name' => 'Arial', 'size' => 11, 'bold' => true], ['alignment' => Jc::CENTER, 'spaceAfter' => 0]);
     $redDate = "1700 " . date('d', strtotime($from)) . "- 1700 " . date('d F Y', strtotime($to));
@@ -273,7 +359,6 @@ Route::get('/export/docx', function (Request $request) {
     
     $table->addRow();
     $cellH2 = $table->addCell(10000, ['gridSpan' => 3, 'bgColor' => '0000FF']);
-    $timeRange = "1700H " . date('d', strtotime($from)) . " – 1700H " . date('d F Y', strtotime($to));
     $cellH2->addText($timeRange, ['name' => 'Arial', 'size' => 12, 'bold' => true, 'color' => 'FFFFFF'], ['alignment' => Jc::LEFT, 'spaceAfter' => 0]);
 
     $table->addRow();
