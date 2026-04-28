@@ -25,13 +25,13 @@ Route::get('/', function () {
 Route::get('/dashboard', function () {
     return Inertia::render('Dashboard', [
         'stats' => [
-            'total' => NewsArticle::count(),
-            'favorable' => NewsArticle::where('category', 'Favorable')->count(),
-            'neutral' => NewsArticle::where('category', 'Neutral')->count(),
-            'unfavorable' => NewsArticle::where('category', 'Unfavorable')->count(),
+            'total' => NewsArticle::where('status', 'approved')->count(),
+            'favorable' => NewsArticle::where('status', 'approved')->where('category', 'Favorable')->count(),
+            'neutral' => NewsArticle::where('status', 'approved')->where('category', 'Neutral')->count(),
+            'unfavorable' => NewsArticle::where('status', 'approved')->where('category', 'Unfavorable')->count(),
         ],
-        'recentNews' => NewsArticle::orderBy('date', 'desc')->limit(5)->get(),
-        'carouselNews' => NewsArticle::whereNotNull('image_path')->orderBy('date', 'desc')->limit(10)->get()
+        'recentNews' => NewsArticle::where('status', 'approved')->orderBy('date', 'desc')->limit(5)->get(),
+        'carouselNews' => NewsArticle::where('status', 'approved')->whereNotNull('image_path')->orderBy('date', 'desc')->limit(10)->get()
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
@@ -40,7 +40,6 @@ Route::middleware('auth')->group(function () {
     // --- SETTINGS & ACTIVE SESSIONS ---
     Route::get('/settings', function () {
         return Inertia::render('Settings', [
-            // This sends the 10 most recently active approved users to the Settings page
             'activeUsers' => User::where('status', 'approved')
                 ->orderBy('updated_at', 'desc')
                 ->limit(10)
@@ -49,7 +48,6 @@ Route::middleware('auth')->group(function () {
     })->name('settings');
 
     // --- ADMIN ONLY: USER MANAGEMENT & APPROVALS ---
-    // Note: This matches the Sidebar link we created earlier
     Route::get('/admin/users', function () {
         return Inertia::render('UserManagement', [
             'users' => User::orderBy('created_at', 'desc')->get()
@@ -65,6 +63,20 @@ Route::middleware('auth')->group(function () {
         $user->delete();
         return back();
     })->name('admin.users.reject');
+
+    // =========================================================================
+    // NEW: ADMIN ONLY - PENDING NEWS APPROVALS 
+    // =========================================================================
+    Route::get('/admin/news/pending', function () {
+        return Inertia::render('PendingNews', [
+            'pendingNews' => NewsArticle::where('status', 'pending')->orderBy('created_at', 'desc')->get()
+        ]);
+    })->name('admin.news.pending');
+
+    Route::post('/admin/news/{newsArticle}/approve', function (NewsArticle $newsArticle) {
+        $newsArticle->update(['status' => 'approved']);
+        return redirect()->back();
+    })->name('admin.news.approve');
 
     // --- NEWS OPERATIONS ---
     Route::get('/add-news', function () {
@@ -178,6 +190,11 @@ Route::middleware('auth')->group(function () {
 
         unset($validated['image']);
 
+        // =========================================================================
+        // NEW: Logic assigns 'approved' to admins, 'pending' to regular users
+        // =========================================================================
+        $validated['status'] = auth()->user()->role === 'admin' ? 'approved' : 'pending';
+
         NewsArticle::create($validated);
         return redirect()->back();
     });
@@ -213,17 +230,17 @@ Route::middleware('auth')->group(function () {
         return redirect()->back();
     });
 
-    // --- OTHER AUTH PAGES ---
+    // --- OTHER AUTH PAGES (Filtered to show ONLY 'approved') ---
     Route::get('/monitoring', function () {
-        return Inertia::render('NewsMonitoring', ['news' => NewsArticle::orderBy('date', 'desc')->get()]);
+        return Inertia::render('NewsMonitoring', ['news' => NewsArticle::where('status', 'approved')->orderBy('date', 'desc')->get()]);
     })->name('monitoring');
 
     Route::get('/analytics', function () {
-        return Inertia::render('Analytics', ['news' => NewsArticle::all()]);
+        return Inertia::render('Analytics', ['news' => NewsArticle::where('status', 'approved')->get()]);
     })->name('analytics');
 
     Route::get('/reports', function () {
-        return Inertia::render('Reports', ['news' => NewsArticle::orderBy('date', 'desc')->get()]);
+        return Inertia::render('Reports', ['news' => NewsArticle::where('status', 'approved')->orderBy('date', 'desc')->get()]);
     })->name('reports');
 
     // --- SETTINGS (Profile & Password Updates) ---
@@ -231,14 +248,19 @@ Route::middleware('auth')->group(function () {
     Route::delete('/settings/account', [ProfileController::class, 'destroy'])->name('settings.account.destroy');
 });
 
-// --- EXPORTS (Auth Protected) ---
+// --- EXPORTS (Auth Protected & Filtered by 'approved') ---
 Route::get('/export/docx', function (Request $request) {
     $from = $request->query('from');
     $to = $request->query('to');
-    $news = NewsArticle::whereBetween('date', [$from, $to])->orderBy('date', 'asc')->get();
     
-    // Fetch Top 3 Critical News for the CIEMA Section
-    $criticalNews = NewsArticle::whereBetween('date', [$from, $to])
+    // Only fetch APPROVED news
+    $news = NewsArticle::where('status', 'approved')
+                ->whereBetween('date', [$from, $to])
+                ->orderBy('date', 'asc')->get();
+    
+    // Fetch Top 3 Critical News for the CIEMA Section (Only APPROVED)
+    $criticalNews = NewsArticle::where('status', 'approved')
+                    ->whereBetween('date', [$from, $to])
                     ->where('category', 'Unfavorable')
                     ->limit(3)
                     ->get();

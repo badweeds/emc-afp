@@ -18,9 +18,10 @@ class NewsArticle extends Model
         'topic',
         'unit_involved',
         'category',
-        'url',
         'date',
+        'image_path',
+        'url',
         'scope',
-        'image_path'
+        'status',
     ];
 }

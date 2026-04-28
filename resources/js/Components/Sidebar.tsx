@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { motion } from 'framer-motion'; // Added Framer Motion
+import { motion } from 'framer-motion';
 import { 
   LayoutDashboard, 
   PlusCircle, 
@@ -8,7 +8,8 @@ import {
   FileText, 
   LogOut,
   Users,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  ClipboardList // Added this new icon for Pending News
 } from 'lucide-react';
 
 // --- Animation Configurations ---
@@ -42,7 +43,6 @@ export default function Sidebar() {
   ];
 
   return (
-    // Changed standard <div> to <motion.div> to enable animation
     <motion.div 
       initial="hidden"
       animate="visible"
@@ -102,26 +102,43 @@ export default function Sidebar() {
 
         {/* ADMIN ONLY SECTION */}
         {isAdmin && (
-          <motion.div variants={linkVariants} whileHover="hover" whileTap="tap">
-            <Link
-              href="/admin/users"
-              className={`group flex items-center px-4 py-3 text-sm font-bold transition-colors duration-200 rounded-lg mt-4 ${
-                url.startsWith('/admin/users') 
-                  ? 'bg-[#FBC02D] text-[#1A237E] shadow-md border-l-4 border-white' 
-                  : 'text-slate-300 hover:bg-white/10 hover:text-white'
-              }`}
-            >
-              <Users className={`mr-3 size-5 ${url.startsWith('/admin/users') ? 'text-[#1A237E]' : 'text-slate-400 group-hover:text-white'}`} />
-              User Approval
-            </Link>
-          </motion.div>
+          <>
+            <motion.div variants={linkVariants} whileHover="hover" whileTap="tap">
+              <Link
+                href="/admin/users"
+                className={`group flex items-center px-4 py-3 text-sm font-bold transition-colors duration-200 rounded-lg mt-4 ${
+                  url.startsWith('/admin/users') 
+                    ? 'bg-[#FBC02D] text-[#1A237E] shadow-md border-l-4 border-white' 
+                    : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                <Users className={`mr-3 size-5 ${url.startsWith('/admin/users') ? 'text-[#1A237E]' : 'text-slate-400 group-hover:text-white'}`} />
+                User Approval
+              </Link>
+            </motion.div>
+
+            {/* NEW: Pending News Link */}
+            <motion.div variants={linkVariants} whileHover="hover" whileTap="tap">
+              <Link
+                href="/admin/news/pending"
+                className={`group flex items-center px-4 py-3 text-sm font-bold transition-colors duration-200 rounded-lg mt-1 ${
+                  url.startsWith('/admin/news/pending') 
+                    ? 'bg-[#FBC02D] text-[#1A237E] shadow-md border-l-4 border-white' 
+                    : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                <ClipboardList className={`mr-3 size-5 ${url.startsWith('/admin/news/pending') ? 'text-[#1A237E]' : 'text-slate-400 group-hover:text-white'}`} />
+                Pending News
+              </Link>
+            </motion.div>
+          </>
         )}
 
         {/* SETTINGS SECTION */}
         <motion.div variants={linkVariants} whileHover="hover" whileTap="tap">
           <Link
             href="/settings"
-            className={`group flex items-center px-4 py-3 text-sm font-bold transition-colors duration-200 rounded-lg ${
+            className={`group flex items-center px-4 py-3 text-sm font-bold transition-colors duration-200 rounded-lg mt-4 ${
               url.startsWith('/settings') 
                 ? 'bg-[#FBC02D] text-[#1A237E] shadow-md border-l-4 border-white' 
                 : 'text-slate-300 hover:bg-white/10 hover:text-white'

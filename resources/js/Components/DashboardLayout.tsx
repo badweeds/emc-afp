@@ -1,8 +1,8 @@
-import { Outlet } from 'react-router';
-import { Sidebar } from './Sidebar';
-import { Navbar } from './Navbar';
+import React, { PropsWithChildren } from 'react';
+import Sidebar from './Sidebar';
+import Navbar from './Navbar';
 
-export function DashboardLayout() {
+export default function DashboardLayout({ children }: PropsWithChildren<{}>) {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <Sidebar />
@@ -11,7 +11,7 @@ export function DashboardLayout() {
       {/* Main Content Area */}
       <main className="ml-64 pt-16 min-h-screen">
         <div className="p-6">
-          <Outlet />
+          {children}
         </div>
       </main>
     </div>

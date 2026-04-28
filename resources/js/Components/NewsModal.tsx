@@ -22,7 +22,7 @@ interface NewsModalProps {
   onClose: () => void;
 }
 
-export function NewsModal({ news, open, onClose }: NewsModalProps) {
+export default function NewsModal({ news, open, onClose }: NewsModalProps) {
   if (!news) return null;
 
   return (
