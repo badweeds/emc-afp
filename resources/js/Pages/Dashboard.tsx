@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
 import { Button } from '@/Components/ui/button';
-import { NewsModal } from '@/Components/NewsModal';
+import  NewsModal  from '@/Components/NewsModal';
 
 // Import the Carousel components
 import {

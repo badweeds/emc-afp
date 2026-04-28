@@ -10,7 +10,7 @@ import { Label } from '../Components/ui/label';
 import { Textarea } from '../Components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../Components/ui/dialog';
 import { Eye, Pencil, Trash2, Search, Filter, X, ImageIcon } from 'lucide-react';
-import { NewsModal } from '../Components/NewsModal';
+import  NewsModal  from '../Components/NewsModal';
 import { toast } from 'sonner';
 
 export interface NewsItem {
