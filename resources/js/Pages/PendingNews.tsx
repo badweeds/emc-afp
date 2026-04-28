@@ -82,7 +82,8 @@ export default function PendingNews({ pendingNews, auth }: any) {
             <NewsModal 
                 open={isModalOpen} 
                 onClose={() => setIsModalOpen(false)} 
-                news={selectedNews} 
+                news={selectedNews}
+                editable={true} 
             />
         </DashboardLayout>
     );
