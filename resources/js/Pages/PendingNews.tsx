@@ -54,7 +54,7 @@ export default function PendingNews({ pendingNews, auth }: any) {
                                     </div>
                                     <div className="flex gap-2">
                                         <Button variant="outline" size="sm" onClick={() => handleEdit(news)}>
-                                            <Edit className="w-4 h-4 mr-2" /> Edit
+                                            <Edit className="w-4 h-4 mr-2" /> View/Edit
                                         </Button>
                                         <Button variant="default" size="sm" onClick={() => handleApprove(news.id)} className="bg-green-600 hover:bg-green-700 text-white">
                                             <CheckCircle className="w-4 h-4 mr-2" /> Approve
@@ -78,11 +78,11 @@ export default function PendingNews({ pendingNews, auth }: any) {
                 </div>
             </div>
 
-            {/* Re-use your existing Edit Modal */}
+            {/* FIX 1: Changed 'isOpen' to 'open' and 'newsToEdit' to 'news' to match the Modal! */}
             <NewsModal 
-                isOpen={isModalOpen} 
+                open={isModalOpen} 
                 onClose={() => setIsModalOpen(false)} 
-                newsToEdit={selectedNews} 
+                news={selectedNews} 
             />
         </DashboardLayout>
     );
