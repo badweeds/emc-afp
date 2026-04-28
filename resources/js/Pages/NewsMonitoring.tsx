@@ -196,7 +196,7 @@ export default function NewsMonitoring({ news = [] }: { news: NewsItem[] }) {
   );
 }
 
-function EditModal({ item, onClose }: { item: NewsItem; onClose: () => void }) {
+export function EditModal({ item, onClose }: { item: NewsItem; onClose: () => void }) {
   const [imagePreview, setImagePreview] = useState<string | null>(item.image_path ? `/news-image/${item.image_path}` : null);
   
   let initialScope = 'Local'; 
