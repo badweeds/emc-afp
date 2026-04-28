@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
-import DashboardLayout from '@/Components/DashboardLayout';
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout'; // THE FIX: Back to your standard system layout!
 import { Head, router } from '@inertiajs/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 import { Button } from '@/Components/ui/button';
 import { CheckCircle, Trash2, Edit, Eye } from 'lucide-react';
 import NewsModal from '@/Components/NewsModal';
-
-// THE FIX: We import the exact EditModal you already built!
 import { EditModal, NewsItem } from './NewsMonitoring'; 
 
 export default function PendingNews({ pendingNews, auth }: any) {
@@ -26,10 +24,12 @@ export default function PendingNews({ pendingNews, auth }: any) {
     };
 
     return (
-        <DashboardLayout user={auth.user}>
+        <AuthenticatedLayout>
             <Head title="Pending News Approvals" />
-            <div className="p-6 max-w-6xl mx-auto lg:p-0">
-                <div className="flex justify-between items-center bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-6">
+            
+            {/* MATCHED STYLING: Uses the exact same spacing and wrappers as NewsMonitoring */}
+            <div className="space-y-5 max-w-6xl mx-auto p-6 lg:p-0">
+                <div className="flex justify-between items-center bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                     <div>
                         <h1 className="text-3xl font-extrabold text-[#1E293B]">Pending News Approvals</h1>
                         <p className="text-slate-500 mt-1 font-medium">Review, edit, or reject news articles submitted by personnel.</p>
@@ -63,7 +63,7 @@ export default function PendingNews({ pendingNews, auth }: any) {
                                         <Button variant="default" size="sm" onClick={() => handleApprove(news.id)} className="bg-green-600 hover:bg-green-700 text-white shadow-sm">
                                             <CheckCircle className="w-4 h-4 mr-2" /> Approve
                                         </Button>
-                                        <Button variant="destructive" size="sm" onClick={() => handleDelete(news.id)} className="shadow-sm">
+                                        <Button variant="destructive" size="sm" onClick={() => handleDelete(news.id)} className="bg-red-600 hover:bg-red-700 text-white shadow-sm">
                                             <Trash2 className="w-4 h-4 mr-2" /> Reject
                                         </Button>
                                     </div>
@@ -84,14 +84,14 @@ export default function PendingNews({ pendingNews, auth }: any) {
                 </div>
             </div>
 
-            {/* This opens the pure reading view */}
+            {/* Reading View Modal */}
             <NewsModal 
                 open={!!viewNews} 
                 onClose={() => setViewNews(null)} 
                 news={viewNews} 
             />
 
-            {/* THE FIX: This opens your exact NewsMonitoring Edit design */}
+            {/* Edit Modal from NewsMonitoring */}
             {editNews && (
                 <EditModal 
                     item={editNews} 
@@ -99,6 +99,6 @@ export default function PendingNews({ pendingNews, auth }: any) {
                 />
             )}
 
-        </DashboardLayout>
+        </AuthenticatedLayout>
     );
 }
