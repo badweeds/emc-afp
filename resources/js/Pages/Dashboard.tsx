@@ -29,8 +29,7 @@ export default function Dashboard({ auth, stats, recentNews, carouselNews }: any
   ];
 
   return (
-    <AuthenticatedLayout
-    >
+    <AuthenticatedLayout>
       <Head title="Dashboard - EMC" />
       
       <div className="space-y-6 max-w-7xl mx-auto pb-10">
