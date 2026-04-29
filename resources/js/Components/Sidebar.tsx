@@ -60,7 +60,7 @@ export default function Sidebar() {
         >
           <div className="size-12 bg-white rounded-lg flex items-center justify-center shadow-lg overflow-hidden border-2 border-[#FBC02D]">
             <img 
-                src="/images/emc-logo.jpg" 
+                src="/images/emc-logo.png" 
                 alt="EMC Logo" 
                 className="w-full h-full object-cover"
                 onError={(e) => {

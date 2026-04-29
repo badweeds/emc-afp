@@ -13,7 +13,7 @@ export default function Guest({ children }: PropsWithChildren) {
                     {/* THE FIX: Swapped the icon for your actual EMC Logo image */}
                     <div className="size-62 bg-white p-1.5 rounded-full border-4 border-yellow-500 mb-8 flex items-center justify-center shadow-2xl overflow-hidden relative z-20">
                         <img 
-                            src="/images/emc-logo.jpg"
+                            src="/images/emc-logo.png"
                             alt="EMC Logo" 
                             className="w-full h-full object-cover rounded-full"
                             onError={(e) => {
@@ -34,7 +34,7 @@ export default function Guest({ children }: PropsWithChildren) {
                     <div className="h-1.5 w-24 bg-yellow-500 rounded-full mb-6 shadow-lg"></div>
 
                     <p className="text-lg text-slate-300 font-medium max-w-md">
-                        Centralized Daily News Monitoring & Intelligence Dashboard
+                        Centralized Daily News Monitoring Dashboard
                     </p>
                 </div>
 
