@@ -10,8 +10,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-// THE FIX: Added 'role' and 'status' to the Fillable attribute!
-#[Fillable(['name', 'email', 'password', 'role', 'status'])]
+// THE FIX: Added 'google_id' to the Fillable attribute alongside role and status!
+#[Fillable(['name', 'email', 'password', 'role', 'status', 'google_id'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
