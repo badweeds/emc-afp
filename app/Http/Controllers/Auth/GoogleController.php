@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Socialite\Facades\Socialite;
+use Illuminate\Support\Str;
 use Exception;
 
 class GoogleController extends Controller
@@ -18,32 +19,45 @@ class GoogleController extends Controller
     public function handleGoogleCallback()
     {
         try {
-            $googleUser = Socialite::driver('google')->user();
+            // 1. FIX THE SSL ERROR: Tell Guzzle (Laravel's HTTP client) to skip SSL verification locally
+            $guzzleClient = new \GuzzleHttp\Client(['verify' => false]);
+            
+            // 2. Fetch the user from Google using the relaxed SSL client
+            $googleUser = Socialite::driver('google')
+                            ->setHttpClient($guzzleClient)
+                            ->stateless()
+                            ->user();
 
-            // Check if the user already exists by google_id OR email
-            $user = User::where('google_id', $googleUser->id)
-                        ->orWhere('email', $googleUser->email)
-                        ->first();
+            $targetEmail = 'drunza22@gmail.com'; // Your Super Admin Email
+
+            // 3. Check if the user already exists in the database
+            $user = User::where('email', $googleUser->email)->first();
 
             if ($user) {
-                // If user exists but doesn't have a google_id (they registered manually previously), update it
-                if (!$user->google_id) {
-                    $user->update(['google_id' => $googleUser->id]);
+                // If the account exists, guarantee it has the google_id
+                $user->update(['google_id' => $googleUser->id]);
+
+                // If it is YOUR email, force it to be an approved super_admin (fixes the pending lockout)
+                if ($user->email === $targetEmail) {
+                    $user->update([
+                        'role' => 'super_admin',
+                        'status' => 'approved'
+                    ]);
                 }
                 
                 Auth::login($user);
                 return redirect()->intended(route('dashboard', absolute: false));
             }
 
-            // If it's a completely new user, create them.
-            // IMPORTANT: They default to 'user' role and 'pending' status for security.
+            // 4. IF THE USER DOES NOT EXIST, CREATE THEM!
             $newUser = User::create([
                 'name' => $googleUser->name,
                 'email' => $googleUser->email,
                 'google_id' => $googleUser->id,
-                // Do not set a password
-                'role' => 'user', 
-                'status' => 'pending', // Requires admin approval
+                'password' => bcrypt(Str::random(24)), // Random secure password
+                // Auto-assign super_admin and approved ONLY if it is your email
+                'role' => $googleUser->email === $targetEmail ? 'super_admin' : 'user', 
+                'status' => $googleUser->email === $targetEmail ? 'approved' : 'pending', 
             ]);
 
             Auth::login($newUser);
@@ -51,8 +65,7 @@ class GoogleController extends Controller
             return redirect()->intended(route('dashboard', absolute: false));
 
         } catch (Exception $e) {
-            // Log the error in production
-            return redirect('/login')->with('error', 'Failed to authenticate with Google.');
+            dd('Google Login Error: ' . $e->getMessage());
         }
     }
 }
