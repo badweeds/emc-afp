@@ -18,7 +18,17 @@ import { toast } from 'sonner';
 
 export default function Settings({ activeUsers = [] }: { activeUsers?: any[] }) {
   const { auth } = usePage<any>().props;
-  const isAdmin = auth.user.role === 'admin';
+  
+  // --- ROLE LOGIC ---
+  const userRole = auth.user.role;
+  const isSuperAdmin = userRole === 'super_admin';
+  const isAdmin = userRole === 'admin';
+  
+  // Both Super Admin and Admin can monitor sessions[cite: 20]
+  const canMonitorSessions = isSuperAdmin || isAdmin;
+  
+  // Only Super Admin is restricted from deleting their account[cite: 20]
+  const canDeleteAccount = userRole !== 'super_admin';
 
   // --- Helper Function: Calculate relative time ---
   const timeAgo = (dateString: string) => {
@@ -51,7 +61,6 @@ export default function Settings({ activeUsers = [] }: { activeUsers?: any[] }) 
 
   const handleUpdateProfile = (e: React.FormEvent) => {
     e.preventDefault();
-    // Pointing to the new route name we created in web.php
     patchProfile(route('settings.profile.update'), {
       onSuccess: () => toast.success('Profile updated successfully!'),
       preserveScroll: true,
@@ -84,7 +93,7 @@ export default function Settings({ activeUsers = [] }: { activeUsers?: any[] }) 
     });
   };
 
-  // --- 3. Delete Account Form (NON-ADMINS ONLY) ---
+  // --- 3. Delete Account Form ---
   const {
     data: deleteData,
     setData: setDeleteData,
@@ -98,7 +107,6 @@ export default function Settings({ activeUsers = [] }: { activeUsers?: any[] }) 
   const handleDeleteAccount = (e: React.FormEvent) => {
     e.preventDefault();
     if (confirm("Are you absolutely sure you want to delete your account? This action cannot be undone.")) {
-        // Pointing to the new route name we created in web.php
         deleteUser(route('settings.account.destroy'), {
             onSuccess: () => toast.success('Account deleted.'),
             preserveScroll: true,
@@ -112,7 +120,7 @@ export default function Settings({ activeUsers = [] }: { activeUsers?: any[] }) 
 
       <div className="space-y-6 max-w-5xl mx-auto p-6 lg:p-2">
         
-        {/* Header - Minimalist Style */}
+        {/* Header */}
         <div className="flex flex-col gap-1 mb-2">
             <h1 className="text-3xl font-extrabold text-[#1E293B]">Account & Security</h1>
             <p className="text-slate-500 font-medium">Manage your credentials and monitor system activity</p>
@@ -212,14 +220,14 @@ export default function Settings({ activeUsers = [] }: { activeUsers?: any[] }) 
               </CardContent>
             </Card>
 
-            {/* Delete Account Card (Hidden from Admins) */}
-            {!isAdmin && (
+            {/* Delete Account Card (Super Admin restricted)[cite: 20] */}
+            {canDeleteAccount && (
                 <Card className="shadow-md bg-red-50 border border-red-200 border-t-4 border-t-red-600">
                 <CardHeader className="border-b border-red-200/50 pb-4">
                     <CardTitle className="flex items-center gap-2 text-red-700">
                     <AlertTriangle className="size-5" /> Danger Zone
                     </CardTitle>
-                    <CardDescription className="text-red-600/80">Once your account is deleted, all of its resources and data will be permanently deleted.</CardDescription>
+                    <CardDescription className="text-red-600/80">Once your account is deleted, all data will be permanently removed.</CardDescription>
                 </CardHeader>
                 <CardContent className="pt-6">
                     <form onSubmit={handleDeleteAccount} className="space-y-4">
@@ -244,7 +252,7 @@ export default function Settings({ activeUsers = [] }: { activeUsers?: any[] }) 
             )}
           </div>
 
-          {/* RIGHT COLUMN: Real-Time Login Monitoring (ADMIN ONLY) */}
+          {/* RIGHT COLUMN: Active Sessions[cite: 20] */}
           <div className="space-y-6">
             <Card className="shadow-md bg-white border border-slate-200">
               <CardHeader className="bg-[#1E293B] text-white rounded-t-lg">
@@ -255,7 +263,7 @@ export default function Settings({ activeUsers = [] }: { activeUsers?: any[] }) 
               <CardContent className="p-0">
                 <div className="divide-y divide-slate-100">
                   
-                  {/* Current User always shows as active */}
+                  {/* Current User */}
                   <div className="p-4 flex items-center justify-between bg-green-50/30">
                     <div className="flex items-center gap-3">
                       <div className="relative">
@@ -272,11 +280,11 @@ export default function Settings({ activeUsers = [] }: { activeUsers?: any[] }) 
                     <Badge variant="outline" className="text-[10px] bg-white border-green-200 text-green-700">Online</Badge>
                   </div>
 
-                  {/* ADMIN VIEW: Map over REAL database users */}
-                  {isAdmin ? (
+                  {/* Authorized Session Monitoring[cite: 20] */}
+                  {canMonitorSessions ? (
                     <div className="max-h-[400px] overflow-y-auto">
                         <div className="px-4 py-2 bg-slate-50 flex justify-between items-center">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Recently Active Personnel</p>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Personnel</p>
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{otherActiveUsers.length} Found</p>
                         </div>
                         
@@ -290,7 +298,7 @@ export default function Settings({ activeUsers = [] }: { activeUsers?: any[] }) 
                                             </div>
                                             <div>
                                                 <p className="text-xs font-bold text-slate-700 leading-none mb-0.5">{user.name}</p>
-                                                <p className="text-[10px] text-slate-400">{user.email}</p>
+                                                <p className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">{user.role}</p>
                                             </div>
                                         </div>
                                         <span className="text-[10px] text-slate-400 font-medium">
@@ -306,26 +314,21 @@ export default function Settings({ activeUsers = [] }: { activeUsers?: any[] }) 
                   ) : (
                     <div className="p-8 text-center bg-slate-50">
                         <ShieldCheck className="size-12 text-slate-300 mx-auto mb-3" />
-                        <p className="text-xs text-slate-500 font-medium">Session monitoring is restricted to Admin personnel only.</p>
+                        <p className="text-xs text-slate-500 font-medium">Session monitoring is restricted.</p>
                     </div>
                   )}
                 </div>
               </CardContent>
-              <div className="p-4 bg-slate-50 border-t border-slate-100 rounded-b-lg">
-                <div className="flex items-center justify-center gap-2 text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                    <Clock className="size-3" /> System Time: {new Date().toLocaleTimeString()}
-                </div>
-              </div>
             </Card>
 
-            {/* Quick Status Stats for Admins */}
-            {isAdmin && (
+            {/* Quick Status Stats for Monitors */}
+            {canMonitorSessions && (
                 <div className="grid grid-cols-1 gap-4">
                     <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex items-center gap-4">
                         <div className="bg-blue-100 p-2 rounded-md text-blue-700"><ShieldCheck className="size-5" /></div>
                         <div>
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Auth Protocol</p>
-                            <p className="text-sm font-bold text-slate-800">RBAC Enabled & Active</p>
+                            <p className="text-sm font-bold text-slate-800">RBAC Enabled</p>
                         </div>
                     </div>
                 </div>

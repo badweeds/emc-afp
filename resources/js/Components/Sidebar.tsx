@@ -32,7 +32,8 @@ export default function Sidebar() {
   const { url, props } = usePage<any>();
   const auth = props.auth;
   
-  const isAdmin = auth.user.role === 'admin';
+  const userRole = auth.user?.role;
+  const isAdmin = userRole === 'admin' || userRole === 'super_admin';
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },

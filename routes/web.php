@@ -63,10 +63,27 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // --- 2. SETTINGS (Everyone) ---
     Route::get('/settings', function () {
+        $currentUser = auth()->user();
+        
+        // Start the query for approved users
+        $query = User::where('status', 'approved')->orderBy('updated_at', 'desc');
+
+        // ROLE-BASED FILTERING LOGIC
+        if ($currentUser->role === 'super_admin') {
+            // Super Admin sees all roles
+        } elseif ($currentUser->role === 'admin') {
+            // Admins only see regular 'user' roles
+            $query->where('role', 'user');
+        } else {
+            // Regular users/commanders see no one else
+            $query->where('id', -1); 
+        }
+
         return Inertia::render('Settings', [
-            'activeUsers' => User::where('status', 'approved')->orderBy('updated_at', 'desc')->limit(10)->get()
+            'activeUsers' => $query->limit(15)->get()
         ]);
     })->name('settings');
+
     Route::patch('/settings/profile', [ProfileController::class, 'update'])->name('settings.profile.update');
     Route::delete('/settings/account', [ProfileController::class, 'destroy'])->name('settings.account.destroy');
 
@@ -82,6 +99,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
             $user->update(['status' => 'approved']);
             return back();
         })->name('admin.users.approve');
+
+        // NEW: ROUTE TO UPDATE USER ROLES
+        Route::patch('/admin/users/{user}/role', function (Request $request, User $user) {
+            $validated = $request->validate([
+                'role' => 'required|in:user,admin,super_admin,commander'
+            ]);
+            
+            $user->update(['role' => $validated['role']]);
+            return back();
+        })->name('admin.users.role');
 
         Route::delete('/admin/users/{user}', function (User $user) {
             $user->delete();

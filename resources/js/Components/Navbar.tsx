@@ -10,8 +10,14 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import { Avatar, AvatarFallback } from './ui/avatar';
+// 1. IMPORT usePage from Inertia
+import { usePage } from '@inertiajs/react';
 
 export function Navbar() {
+  // 2. GRAB the current logged-in user's data
+  const { auth } = usePage<any>().props;
+  const user = auth.user;
+
   return (
     <header className="h-16 bg-white border-b border-gray-200 fixed top-0 right-0 left-64 z-10 shadow-sm">
       <div className="h-full px-6 flex items-center justify-between">
@@ -29,24 +35,26 @@ export function Navbar() {
 
         {/* Right Side - Notifications and Profile */}
         <div className="flex items-center gap-4">
-          {/* Notifications */}
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="size-5" />
             <span className="absolute top-1 right-1 size-2 bg-[#DC2626] rounded-full"></span>
           </Button>
 
-          {/* User Profile Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2">
                 <Avatar className="size-8">
-                  <AvatarFallback className="bg-[#7B1E1E] text-white">
-                    <User className="size-4" />
+                  <AvatarFallback className="bg-[#7B1E1E] text-white font-bold">
+                    {/* 3. SHOW the first letter of their name instead of an icon */}
+                    {user?.name?.charAt(0) || <User className="size-4" />}
                   </AvatarFallback>
                 </Avatar>
                 <div className="text-left hidden md:block">
-                  <p className="text-sm font-medium">Admin User</p>
-                  <p className="text-xs text-gray-500">Administrator</p>
+                  {/* 4. SHOW their actual Name and Role! */}
+                  <p className="text-sm font-bold text-slate-800">{user?.name}</p>
+                  <p className="text-xs text-gray-500 uppercase font-semibold tracking-wider">
+                    {user?.role ? user.role.replace('_', ' ') : 'Personnel'}
+                  </p>
                 </div>
               </Button>
             </DropdownMenuTrigger>
@@ -56,7 +64,7 @@ export function Navbar() {
               <DropdownMenuItem>Profile</DropdownMenuItem>
               <DropdownMenuItem>Settings</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-600">Logout</DropdownMenuItem>
+              <DropdownMenuItem className="text-red-600 font-bold">Logout</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
