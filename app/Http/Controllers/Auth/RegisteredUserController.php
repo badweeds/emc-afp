@@ -34,13 +34,14 @@ class RegisteredUserController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
+            'unit' => 'required|string', // <-- 1. Validates that unit is provided
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
-        // THE FIX: Explicitly set them as a 'user' and make their status 'pending'
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
+            'unit' => $request->unit, 
             'password' => Hash::make($request->password),
             'role' => 'user', 
             'status' => 'pending', 
@@ -48,10 +49,6 @@ class RegisteredUserController extends Controller
 
         event(new Registered($user));
 
-        // THE FIX: Stop Laravel from automatically logging them in!
-        // Auth::login($user);
-
-        // Redirect them back to the login page with a green success message
         return redirect()->route('login')->with('status', 'Registration successful! Your account is pending Admin approval.');
     }
 }

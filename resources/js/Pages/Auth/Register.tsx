@@ -2,12 +2,13 @@ import { useEffect, FormEventHandler } from 'react';
 import InputError from '@/Components/InputError';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { Lock, Mail, User, ShieldCheck } from 'lucide-react';
+import { Lock, Mail, User, ShieldCheck, Building } from 'lucide-react';
 
 export default function Register() {
     const { data, setData, post, processing, errors, reset } = useForm({
         name: '',
         email: '',
+        unit: '', // <-- Added unit to state
         password: '',
         password_confirmation: '',
     });
@@ -76,6 +77,30 @@ export default function Register() {
                         />
                     </div>
                     <InputError message={errors.email} className="mt-2" />
+                </div>
+
+                {/* Military Unit Dropdown */}
+                <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5 uppercase tracking-wide">Military Unit</label>
+                    <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                            <Building className="size-5 text-slate-400" />
+                        </div>
+                        <select
+                            value={data.unit}
+                            onChange={(e) => setData('unit', e.target.value)}
+                            className="pl-11 block w-full rounded-xl border-slate-300 bg-slate-50 border-2 focus:border-[#7B1E1E] focus:ring-[#7B1E1E] sm:text-sm p-3.5 font-medium text-slate-900 appearance-none"
+                            required
+                        >
+                            <option value="" disabled>Select your unit...</option>
+                            <option value="Eastern Mindanao Command (EastMinCom) Headquarters">Eastern Mindanao Command (EastMinCom) Headquarters</option>
+                            <option value="Naval Forces Eastern Mindanao (NFEM)">Naval Forces Eastern Mindanao (NFEM)</option>
+                            <option value="Tactical Operations Group 10 (TOG 10)">Tactical Operations Group 10 (TOG 10)</option>
+                            <option value="4th Infantry Division (4ID)">4th Infantry Division (4ID)</option>
+                            <option value="10th Infantry Division (10ID)">10th Infantry Division (10ID)</option>
+                        </select>
+                    </div>
+                    <InputError message={errors.unit} className="mt-2" />
                 </div>
 
                 {/* Password */}

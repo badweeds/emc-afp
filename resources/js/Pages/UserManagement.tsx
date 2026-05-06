@@ -3,20 +3,20 @@ import { Head, router, usePage } from '@inertiajs/react';
 import { Card, CardContent, CardHeader, CardTitle } from '../Components/ui/card';
 import { Button } from '../Components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../Components/ui/table';
-import { Check, X, UserCheck, Shield, Trash2 } from 'lucide-react';
+import { Check, X, UserCheck, Shield, Trash2, Building } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function UserManagement({ users }: { users: any[] }) {
   const { auth } = usePage<any>().props;
 
-  // Handle Approving users[cite: 22]
+  // Handle Approving users
   const handleApprove = (id: number) => {
     router.post(`/admin/users/${id}/approve`, {}, {
       onSuccess: () => toast.success('User approved successfully!')
     });
   };
 
-  // Handle Rejecting or Deleting users[cite: 22, 23]
+  // Handle Rejecting or Deleting users
   const handleReject = (id: number) => {
     if(confirm('Are you absolutely sure you want to delete this account? This action is permanent.')) {
       router.delete(`/admin/users/${id}`, {
@@ -25,10 +25,16 @@ export default function UserManagement({ users }: { users: any[] }) {
     }
   };
 
-  // Handle updating roles[cite: 22]
+  // Handle updating roles
   const handleRoleChange = (id: number, newRole: string) => {
     router.patch(`/admin/users/${id}/role`, { role: newRole }, {
       onSuccess: () => toast.success(`Role updated to ${newRole.replace('_', ' ')}`),
+      // THE FIX: Catch the limit error from the backend and display it!
+      onError: (errors: any) => {
+          if (errors.role) {
+              toast.error(errors.role);
+          }
+      },
       preserveScroll: true
     });
   };
@@ -44,7 +50,7 @@ export default function UserManagement({ users }: { users: any[] }) {
           </div>
         </div>
 
-        {/* PENDING REGISTRATIONS[cite: 22] */}
+        {/* PENDING REGISTRATIONS */}
         <Card className="shadow-md bg-white border border-slate-200 border-t-4 border-t-[#1E293B]">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-[#1E293B]">
@@ -57,6 +63,7 @@ export default function UserManagement({ users }: { users: any[] }) {
                 <TableRow>
                   <TableHead className="font-bold">Name / Rank</TableHead>
                   <TableHead className="font-bold">Email</TableHead>
+                  <TableHead className="font-bold">Military Unit</TableHead>
                   <TableHead className="font-bold">Requested On</TableHead>
                   <TableHead className="text-right font-bold">Actions</TableHead>
                 </TableRow>
@@ -66,6 +73,13 @@ export default function UserManagement({ users }: { users: any[] }) {
                   <TableRow key={user.id}>
                     <TableCell className="font-semibold">{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
+                    {/* THE FIX: Show the unit they registered with */}
+                    <TableCell>
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 text-xs font-bold text-slate-700">
+                            <Building className="size-3" />
+                            {user.unit || 'Not Assigned'}
+                        </span>
+                    </TableCell>
                     <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
@@ -84,7 +98,7 @@ export default function UserManagement({ users }: { users: any[] }) {
           </CardContent>
         </Card>
 
-        {/* ACTIVE USERS LIST - Includes Role Change and Delete[cite: 22, 23] */}
+        {/* ACTIVE USERS LIST - Includes Role Change and Delete */}
         <Card className="shadow-md bg-white border border-slate-200 border-t-4 border-t-[#7B1E1E]">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-[#1E293B]">
@@ -96,6 +110,7 @@ export default function UserManagement({ users }: { users: any[] }) {
               <TableHeader>
                 <TableRow>
                   <TableHead>Personnel</TableHead>
+                  <TableHead>Military Unit</TableHead>
                   <TableHead>Change Access Level</TableHead>
                   <TableHead className="text-right">Management</TableHead>
                 </TableRow>
@@ -108,6 +123,12 @@ export default function UserManagement({ users }: { users: any[] }) {
                             <span>{user.name}</span>
                             <span className="text-[10px] text-slate-400 font-bold uppercase">{user.email}</span>
                         </div>
+                    </TableCell>
+                    {/* THE FIX: Show the unit for approved users too */}
+                    <TableCell>
+                        <span className="text-xs font-semibold text-slate-600">
+                            {user.unit || 'Not Assigned'}
+                        </span>
                     </TableCell>
                     <TableCell>
                       <select 

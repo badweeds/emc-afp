@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 import { Input } from '@/Components/ui/input';
@@ -8,7 +8,7 @@ import { Textarea } from '@/Components/ui/textarea';
 import { Button } from '@/Components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import { toast } from 'sonner';
-import { PlusCircle, Sparkles, Loader2, Save, X } from 'lucide-react';
+import { PlusCircle, Sparkles, Loader2, Save, X, Lock } from 'lucide-react';
 import axios from 'axios';
 
 const militaryUnits = [
@@ -49,6 +49,14 @@ const mediaSources = {
 };
 
 export default function AddNews() {
+  // THE FIX: Pull the current user's role and unit from the auth context
+  const { auth } = usePage<any>().props;
+  const userRole = auth.user.role;
+  const userUnit = auth.user.unit;
+  
+  // Determine if the user should be restricted from changing the unit
+  const isUnitRestricted = userRole === 'admin' || userRole === 'user';
+
   const [rawContent, setRawContent] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -61,7 +69,7 @@ export default function AddNews() {
     custom_media_outlet: '', 
     reporter: '', 
     topic: '',
-    unit_involved: '',
+    unit_involved: isUnitRestricted ? userUnit : '', // Pre-fill if restricted
     category: '', 
     url: '',
     date: new Date().toISOString().split('T')[0],
@@ -71,6 +79,8 @@ export default function AddNews() {
   transform((formData) => ({
     ...formData,
     media_outlet: formData.media_outlet === 'Others' ? formData.custom_media_outlet : formData.media_outlet,
+    // Ensure the restricted unit is ALWAYS sent, even if they tried to hack the disabled dropdown
+    unit_involved: isUnitRestricted ? userUnit : formData.unit_involved,
   }));
 
   const handleAIAnalysis = async () => {
@@ -106,13 +116,13 @@ export default function AddNews() {
         scope: aiScope,
         media_outlet: finalMediaOutlet || prev.media_outlet,
         custom_media_outlet: finalCustomOutlet || prev.custom_media_outlet,
-        unit_involved: response.data.unit_involved || prev.unit_involved,
+        // Block AI from overriding the unit if the user is restricted
+        unit_involved: isUnitRestricted ? userUnit : (response.data.unit_involved || prev.unit_involved),
         topic: response.data.topic || prev.topic,
         date: response.data.date || prev.date,
       }));
       toast.success("AI Auto-Fill Complete! All relevant fields have been populated.");
     } catch (error: any) {
-      // THE FIX: Grab the EXACT error message sent by the Laravel Backend!
       const actualError = error.response?.data?.error || error.message || "Unknown server error.";
       toast.error(`AI Analysis Failed: ${actualError}`, { duration: 8000 });
     } finally {
@@ -138,7 +148,6 @@ export default function AddNews() {
         setRawContent('');
         setImagePreview(null);
       },
-      // THE FIX: Show a clear error popup if validation fails silently!
       onError: (err) => {
         const errorMessages = Object.values(err).join(' | ');
         toast.error(`Failed to Save: ${errorMessages}`);
@@ -260,13 +269,27 @@ export default function AddNews() {
               {/* Unit, Topic, Sentiment */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-2">
-                  <Label className="text-slate-700 font-bold">Unit Involved *</Label>
-                  <Select value={data.unit_involved} onValueChange={(val) => setData('unit_involved', val)}>
-                    <SelectTrigger className="bg-white border-slate-300 text-slate-900 font-medium focus:ring-[#7B1E1E]"><SelectValue placeholder="Select unit" /></SelectTrigger>
+                  <Label className="text-slate-700 font-bold flex items-center gap-1">
+                    Unit Involved *
+                    {isUnitRestricted && <Lock className="size-3 text-red-500" />}
+                  </Label>
+                  <Select 
+                    value={data.unit_involved} 
+                    onValueChange={(val) => setData('unit_involved', val)}
+                    disabled={isUnitRestricted} // <-- Lock the dropdown for regular admins and users
+                  >
+                    <SelectTrigger className={`border-slate-300 text-slate-900 font-medium focus:ring-[#7B1E1E] ${isUnitRestricted ? 'bg-slate-100 cursor-not-allowed opacity-80' : 'bg-white'}`}>
+                      <SelectValue placeholder="Select unit" />
+                    </SelectTrigger>
                     <SelectContent className="bg-white border border-slate-200 shadow-xl z-50 max-h-[300px]">
                       {militaryUnits.map(unit => <SelectItem key={unit} value={unit} className={dropdownItemClass}>{unit}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                  {isUnitRestricted && (
+                    <p className="text-xs text-red-500 font-medium mt-1 leading-tight">
+                      * Restricted: You can only post news for your assigned unit.
+                    </p>
+                  )}
                   {errors.unit_involved && <p className="text-red-500 text-xs mt-1">{errors.unit_involved}</p>}
                 </div>
                 
