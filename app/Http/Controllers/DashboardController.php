@@ -13,24 +13,48 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
         
+        // Base stats used by both dashboards
         $stats = [
             'total' => NewsArticle::where('status', 'approved')->count(),
             'favorable' => NewsArticle::where('status', 'approved')->where('category', 'Favorable')->count(),
             'neutral' => NewsArticle::where('status', 'approved')->where('category', 'Neutral')->count(),
             'unfavorable' => NewsArticle::where('status', 'approved')->where('category', 'Unfavorable')->count(),
         ];
-        $recentNews = NewsArticle::where('status', 'approved')->orderBy('date', 'desc')->limit(5)->get();
 
+        // ==========================================
+        // COMMANDER'S ALL-IN-ONE VIEW
+        // ==========================================
         if ($user && $user->role === 'commander') {
+            
+            // Get reports grouped by military unit
+            $unitStats = NewsArticle::where('status', 'approved')
+                ->selectRaw('unit_involved, count(*) as count')
+                ->groupBy('unit_involved')
+                ->get();
+
+            // Get top 5 most discussed topics
+            $topicStats = NewsArticle::where('status', 'approved')
+                ->selectRaw('topic, count(*) as count')
+                ->groupBy('topic')
+                ->orderBy('count', 'desc')
+                ->limit(5)
+                ->get();
+
             return Inertia::render('CommanderDashboard', [
                 'stats' => $stats,
-                'recentNews' => $recentNews,
+                'unitStats' => $unitStats,
+                'topicStats' => $topicStats,
+                // Commander gets the 10 most recent feed items
+                'recentNews' => NewsArticle::where('status', 'approved')->orderBy('date', 'desc')->limit(10)->get(),
             ]);
         }
 
+        // ==========================================
+        // STANDARD PERSONNEL DASHBOARD
+        // ==========================================
         return Inertia::render('Dashboard', [
             'stats' => $stats,
-            'recentNews' => $recentNews,
+            'recentNews' => NewsArticle::where('status', 'approved')->orderBy('date', 'desc')->limit(5)->get(),
             'carouselNews' => NewsArticle::where('status', 'approved')->whereNotNull('image_path')->orderBy('date', 'desc')->limit(10)->get()
         ]);
     }

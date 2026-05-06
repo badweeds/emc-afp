@@ -9,7 +9,7 @@ import {
   LogOut,
   Users,
   Settings as SettingsIcon,
-  ClipboardList // Added this new icon for Pending News
+  ClipboardList 
 } from 'lucide-react';
 
 // --- Animation Configurations ---
@@ -34,13 +34,17 @@ export default function Sidebar() {
   
   const userRole = auth.user?.role;
   const isAdmin = userRole === 'admin' || userRole === 'super_admin';
+  const isCommander = userRole === 'commander';
 
+  // THE FIX: Only push these extra links into the array if the user is NOT a commander
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Add News', href: '/add-news', icon: PlusCircle },
-    { name: 'Monitoring', href: '/monitoring', icon: Search },
-    { name: 'Analytics', href: '/analytics', icon: BarChart3 },
-    { name: 'Reports', href: '/reports', icon: FileText },
+    ...(!isCommander ? [
+      { name: 'Add News', href: '/add-news', icon: PlusCircle },
+      { name: 'Monitoring', href: '/monitoring', icon: Search },
+      { name: 'Analytics', href: '/analytics', icon: BarChart3 },
+      { name: 'Reports', href: '/reports', icon: FileText },
+    ] : [])
   ];
 
   return (
@@ -118,7 +122,7 @@ export default function Sidebar() {
               </Link>
             </motion.div>
 
-            {/* NEW: Pending News Link */}
+            {/* Pending News Link */}
             <motion.div variants={linkVariants} whileHover="hover" whileTap="tap">
               <Link
                 href="/admin/news/pending"
@@ -135,7 +139,7 @@ export default function Sidebar() {
           </>
         )}
 
-        {/* SETTINGS SECTION */}
+        {/* SETTINGS SECTION (Shows for Everyone) */}
         <motion.div variants={linkVariants} whileHover="hover" whileTap="tap">
           <Link
             href="/settings"

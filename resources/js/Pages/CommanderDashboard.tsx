@@ -2,152 +2,173 @@ import React from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head } from '@inertiajs/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
-import { Shield, AlertTriangle, CheckCircle2, MinusCircle, Newspaper, Building, Calendar, MapPin, Activity } from 'lucide-react';
-
-interface NewsArticle {
-  id: number;
-  title: string;
-  media_outlet: string;
-  topic: string;
-  category: 'Favorable' | 'Neutral' | 'Unfavorable';
-  unit_involved: string;
-  date: string;
-}
+import { Shield, AlertTriangle, CheckCircle2, MinusCircle, Newspaper, Building, Calendar, MapPin, Activity, PieChart, TrendingUp } from 'lucide-react';
 
 interface CommanderDashboardProps {
-  stats: {
-    total: number;
-    favorable: number;
-    neutral: number;
-    unfavorable: number;
-  };
-  recentNews: NewsArticle[];
+  stats: { total: number; favorable: number; neutral: number; unfavorable: number; };
+  unitStats: { unit_involved: string; count: number }[];
+  topicStats: { topic: string; count: number }[];
+  recentNews: any[];
 }
 
-export default function CommanderDashboard({ stats, recentNews }: CommanderDashboardProps) {
+export default function CommanderDashboard({ stats, unitStats, topicStats, recentNews }: CommanderDashboardProps) {
+  
+  // Calculate percentages for the sentiment bar
+  const favPct = stats.total > 0 ? (stats.favorable / stats.total) * 100 : 0;
+  const neuPct = stats.total > 0 ? (stats.neutral / stats.total) * 100 : 0;
+  const unfPct = stats.total > 0 ? (stats.unfavorable / stats.total) * 100 : 0;
+
   return (
     <AuthenticatedLayout>
       <Head title="Commander's Dashboard - EMC" />
 
-      <div className="max-w-7xl mx-auto space-y-8 p-4 lg:p-0">
+      <div className="max-w-7xl mx-auto space-y-6 p-4 lg:p-0">
         
-        {/* DASHBOARD HEADER */}
-        <div className="bg-white p-8 rounded-xl shadow-sm border border-slate-200 border-l-8 border-l-[#1E293B] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        {/* HEADER */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 border-l-8 border-l-[#1E293B] flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-extrabold text-[#1E293B] uppercase tracking-wide">
-              Commander's Overview
-            </h1>
-            <p className="text-slate-500 mt-1 font-medium">
-              Information Environment Monitoring & Assessment (CIEMA)
-            </p>
+            <h1 className="text-2xl font-extrabold text-[#1E293B] uppercase tracking-wide">Commander's Analytics</h1>
+            <p className="text-slate-500 font-medium text-sm">Real-time Information Environment Monitoring & Assessment</p>
           </div>
-          <div className="bg-slate-100 px-4 py-2 rounded-lg border border-slate-200 flex items-center gap-2">
+          <div className="bg-slate-100 px-4 py-2 rounded-lg border border-slate-200 flex items-center gap-2 hidden md:flex">
             <Shield className="size-5 text-[#7B1E1E]" />
-            <span className="font-bold text-slate-800 uppercase tracking-widest text-sm">EastMinCom Sec. Level</span>
+            <span className="font-bold text-slate-800 uppercase tracking-widest text-xs">EastMinCom Executive View</span>
           </div>
         </div>
 
-        {/* HIGH-LEVEL STATS CARDS */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        {/* TOP ROW: KPI NUMBERS */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="shadow-md border-slate-200">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-bold text-slate-500 uppercase tracking-wider flex justify-between items-center">
-                Total Intelligence
-                <Newspaper className="size-5 text-blue-500" />
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-4xl font-extrabold text-slate-800">{stats.total}</div>
-              <p className="text-xs text-slate-400 font-medium mt-1">Processed Reports</p>
+            <CardContent className="p-6">
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1"><Newspaper className="size-4" /> Total Reports</p>
+              <div className="text-3xl font-black text-slate-800">{stats.total}</div>
             </CardContent>
           </Card>
-
-          <Card className="shadow-md border-t-4 border-t-green-600 bg-green-50/30">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-bold text-green-700 uppercase tracking-wider flex justify-between items-center">
-                Favorable
-                <CheckCircle2 className="size-5 text-green-600" />
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-4xl font-extrabold text-green-700">{stats.favorable}</div>
-              <p className="text-xs text-green-600/70 font-bold mt-1">Positive Environment Gains</p>
+          <Card className="shadow-md border-b-4 border-b-green-600">
+            <CardContent className="p-6">
+              <p className="text-xs font-bold text-green-700 uppercase tracking-wider mb-1 flex items-center gap-1"><CheckCircle2 className="size-4" /> Favorable</p>
+              <div className="text-3xl font-black text-green-700">{stats.favorable}</div>
             </CardContent>
           </Card>
-
-          <Card className="shadow-md border-t-4 border-t-slate-500">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-bold text-slate-600 uppercase tracking-wider flex justify-between items-center">
-                Neutral
-                <MinusCircle className="size-5 text-slate-500" />
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-4xl font-extrabold text-slate-700">{stats.neutral}</div>
-              <p className="text-xs text-slate-500 font-bold mt-1">Standard Operations / Informational</p>
+          <Card className="shadow-md border-b-4 border-b-slate-400">
+            <CardContent className="p-6">
+              <p className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-1 flex items-center gap-1"><MinusCircle className="size-4" /> Neutral</p>
+              <div className="text-3xl font-black text-slate-600">{stats.neutral}</div>
             </CardContent>
           </Card>
-
-          <Card className="shadow-md border-t-4 border-t-[#7B1E1E] bg-red-50/30">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-bold text-[#7B1E1E] uppercase tracking-wider flex justify-between items-center">
-                Critical / Unfavorable
-                <AlertTriangle className="size-5 text-[#7B1E1E]" />
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-4xl font-extrabold text-[#7B1E1E]">{stats.unfavorable}</div>
-              <p className="text-xs text-red-700/70 font-bold mt-1">Adversarial & Threat Narratives</p>
+          <Card className="shadow-md border-b-4 border-b-[#7B1E1E] bg-red-50/30">
+            <CardContent className="p-6">
+              <p className="text-xs font-bold text-[#7B1E1E] uppercase tracking-wider mb-1 flex items-center gap-1"><AlertTriangle className="size-4" /> Unfavorable</p>
+              <div className="text-3xl font-black text-[#7B1E1E]">{stats.unfavorable}</div>
             </CardContent>
           </Card>
         </div>
 
-        {/* RECENT INTELLIGENCE FEED */}
-        <Card className="shadow-lg border-slate-200">
-          <CardHeader className="bg-slate-50 border-b border-slate-200">
-            <CardTitle className="text-xl font-bold text-[#1E293B] flex items-center gap-2">
-              <Activity className="size-5 text-[#7B1E1E]" /> Latest Intelligence Feed
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="divide-y divide-slate-100">
-              {recentNews.length > 0 ? (
-                recentNews.map((news) => (
-                  <div key={news.id} className="p-6 hover:bg-slate-50 transition-colors flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-                    
-                    {/* Left Side: Title and Meta */}
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-3">
-                        {news.category === 'Favorable' && <span className="bg-green-100 text-green-800 text-xs font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider border border-green-200">Favorable</span>}
-                        {news.category === 'Neutral' && <span className="bg-slate-100 text-slate-700 text-xs font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider border border-slate-300">Neutral</span>}
-                        {news.category === 'Unfavorable' && <span className="bg-red-100 text-red-800 text-xs font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider border border-red-200 flex items-center gap-1"><AlertTriangle className="size-3" /> Unfavorable</span>}
-                        
-                        <span className="text-sm font-bold text-slate-400 flex items-center gap-1">
-                          <Calendar className="size-3.5" /> {new Date(news.date).toLocaleDateString()}
-                        </span>
+        {/* MIDDLE ROW: VISUAL ANALYTICS */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          {/* Sentiment Visual Bar */}
+          <Card className="shadow-md">
+            <CardHeader className="bg-slate-50 border-b border-slate-100 pb-3">
+              <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2 uppercase tracking-wide"><PieChart className="size-4 text-[#7B1E1E]"/> Overall Sentiment Breakdown</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-6">
+              {/* Stacked Bar Chart */}
+              <div className="w-full h-8 flex rounded-full overflow-hidden shadow-inner mb-4">
+                <div style={{ width: `${favPct}%` }} className="bg-green-500 h-full transition-all duration-500"></div>
+                <div style={{ width: `${neuPct}%` }} className="bg-slate-400 h-full transition-all duration-500"></div>
+                <div style={{ width: `${unfPct}%` }} className="bg-[#7B1E1E] h-full transition-all duration-500"></div>
+              </div>
+              <div className="flex justify-between text-xs font-bold uppercase tracking-wider">
+                <span className="text-green-600">{favPct.toFixed(1)}% Favorable</span>
+                <span className="text-slate-500">{neuPct.toFixed(1)}% Neutral</span>
+                <span className="text-[#7B1E1E]">{unfPct.toFixed(1)}% Threat</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Top Topics */}
+          <Card className="shadow-md">
+            <CardHeader className="bg-slate-50 border-b border-slate-100 pb-3">
+              <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2 uppercase tracking-wide"><TrendingUp className="size-4 text-[#7B1E1E]"/> Top 5 Discussed Topics</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-3">
+              {topicStats.map((topic, i) => (
+                <div key={i} className="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-100">
+                  <span className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                    <span className="bg-[#1E293B] text-white size-5 flex items-center justify-center rounded-full text-[10px]">{i + 1}</span>
+                    {topic.topic}
+                  </span>
+                  <span className="text-sm font-black text-[#7B1E1E]">{topic.count} reports</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* BOTTOM ROW: UNIT REPORTS & LATEST FEED */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          {/* Reports by Unit (Left side, takes 1/3 space) */}
+          <Card className="shadow-md lg:col-span-1 border-t-4 border-t-[#1E293B]">
+            <CardHeader className="bg-slate-50 border-b border-slate-100 pb-3">
+              <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2 uppercase tracking-wide"><Building className="size-4 text-[#1E293B]"/> Reports by Unit</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-4">
+              {unitStats.map((unit, i) => {
+                const maxCount = Math.max(...unitStats.map(u => u.count));
+                const widthPct = (unit.count / maxCount) * 100;
+                // Shorten unit names for the commander view
+                const shortName = unit.unit_involved.split('(')[1]?.replace(')', '') || unit.unit_involved;
+
+                return (
+                  <div key={i} className="space-y-1">
+                    <div className="flex justify-between text-xs font-bold text-slate-600">
+                      <span>{shortName}</span>
+                      <span>{unit.count}</span>
+                    </div>
+                    <div className="w-full bg-slate-100 rounded-full h-2">
+                      <div className="bg-[#1E293B] h-2 rounded-full" style={{ width: `${widthPct}%` }}></div>
+                    </div>
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+
+          {/* Latest Intelligence Feed (Right side, takes 2/3 space) */}
+          <Card className="shadow-lg lg:col-span-2 border-t-4 border-t-[#7B1E1E]">
+            <CardHeader className="bg-slate-50 border-b border-slate-100 pb-3">
+              <CardTitle className="text-sm font-bold text-[#1E293B] flex items-center gap-2 uppercase tracking-wide">
+                <Activity className="size-4 text-[#7B1E1E]" /> Latest Intelligence Feed
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y divide-slate-100 h-[400px] overflow-y-auto">
+                {recentNews.length > 0 ? (
+                  recentNews.map((news) => (
+                    <div key={news.id} className="p-4 hover:bg-slate-50 transition-colors flex flex-col gap-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        {news.category === 'Favorable' && <span className="bg-green-100 text-green-800 text-[10px] font-extrabold px-2 py-0.5 rounded uppercase border border-green-200">Favorable</span>}
+                        {news.category === 'Neutral' && <span className="bg-slate-100 text-slate-700 text-[10px] font-extrabold px-2 py-0.5 rounded uppercase border border-slate-300">Neutral</span>}
+                        {news.category === 'Unfavorable' && <span className="bg-red-100 text-red-800 text-[10px] font-extrabold px-2 py-0.5 rounded uppercase border border-red-200 flex items-center gap-1"><AlertTriangle className="size-3" /> Threat</span>}
+                        <span className="text-[10px] font-bold text-slate-400">{new Date(news.date).toLocaleDateString()}</span>
+                        <span className="text-[10px] font-bold text-[#1E293B] ml-auto border border-[#1E293B] px-2 py-0.5 rounded">{news.media_outlet}</span>
                       </div>
-                      
-                      <h3 className="text-lg font-bold text-slate-900 leading-tight">
-                        {news.title}
-                      </h3>
-                      
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-600 font-medium">
-                        <span className="flex items-center gap-1.5"><Newspaper className="size-4 text-slate-400" /> {news.media_outlet}</span>
-                        <span className="flex items-center gap-1.5"><MapPin className="size-4 text-slate-400" /> {news.topic}</span>
-                        <span className="flex items-center gap-1.5 text-[#1E293B] font-bold"><Building className="size-4 text-[#7B1E1E]" /> {news.unit_involved}</span>
+                      <h3 className="text-sm font-bold text-slate-900 leading-snug">{news.title}</h3>
+                      <div className="flex items-center gap-3 text-xs text-slate-500 font-medium mt-1">
+                        <span className="flex items-center gap-1"><MapPin className="size-3 text-slate-400" /> {news.topic}</span>
+                        <span className="flex items-center gap-1"><Building className="size-3 text-slate-400" /> {news.unit_involved.split('(')[1]?.replace(')', '') || news.unit_involved}</span>
                       </div>
                     </div>
-
-                  </div>
-                ))
-              ) : (
-                <div className="p-8 text-center text-slate-500 font-medium">
-                  No recent intelligence reports available for review.
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                  ))
+                ) : (
+                  <div className="p-8 text-center text-slate-500 font-medium">No recent intelligence reports available.</div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
       </div>
     </AuthenticatedLayout>
