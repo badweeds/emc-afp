@@ -145,6 +145,79 @@ class NewsController extends Controller
 
     public function analyze(Request $request)
     {
-        // OpenAI / OpenRouter cURL Logic lives here
+        // 1. Get the raw text from the frontend
+        $request->validate([
+            'content' => 'required|string'
+        ]);
+
+        $newsContent = $request->input('content');
+        
+        // 2. OpenRouter API Endpoint
+        $url = 'https://openrouter.ai/api/v1/chat/completions';
+        
+        // 3. The Military Prompt Payload (Removed 'response_format' as free models often reject it)
+        $data = [
+            'model' => 'meta-llama/llama-3.1-8b-instruct:free',
+            'messages' => [
+                [
+                    'role' => 'system',
+                    'content' => 'You are a military intelligence analyst for the Eastern Mindanao Command (EMC). Analyze the provided news text and return ONLY a valid JSON object with no markdown formatting. The JSON must have these exact keys: "title" (a strong professional title), "summary" (a brief 1-2 sentence intelligence summary), "topic" (the main subject, e.g., Insurgency, Environment, Politics), and "category" (Must be exactly one of: "Favorable", "Neutral", or "Unfavorable").'
+                ],
+                [
+                    'role' => 'user',
+                    'content' => $newsContent
+                ]
+            ]
+        ];
+
+        // 4. Send the request via cURL
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: Bearer ' . env('OPENROUTER_API_KEY'),
+            'Content-Type: application/json',
+            'HTTP-Referer: http://localhost:8000', // OpenRouter sometimes requires this
+            'X-Title: EMC News System'
+        ]);
+        
+        // Bypass SSL for Windows local servers
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0); 
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0); 
+
+        $response = curl_exec($ch);
+        $err = curl_error($ch);
+        curl_close($ch);
+
+        // 5. Handle Network Errors
+        if ($err) {
+            return response()->json(['error' => 'cURL Network Error: ' . $err], 500);
+        }
+
+        // 6. Decode the OpenRouter response
+        $result = json_decode($response, true);
+        
+        // 7. Check if the AI actually gave us a choice/response
+        if (isset($result['choices'][0]['message']['content'])) {
+            $rawContent = $result['choices'][0]['message']['content'];
+            
+            // CLEANUP FIX: Strip out markdown blocks if the AI added them by mistake
+            $rawContent = preg_replace('/```json\s*/', '', $rawContent);
+            $rawContent = preg_replace('/```\s*/', '', $rawContent);
+            $rawContent = trim($rawContent);
+
+            $aiData = json_decode($rawContent, true);
+            
+            if ($aiData) {
+                return response()->json($aiData); // Success!
+            } else {
+                return response()->json(['error' => 'AI returned invalid text format instead of JSON.'], 500);
+            }
+        }
+
+        // 8. If we reached here, OpenRouter sent an API error (like rate limits). Let's print it exactly!
+        $openRouterError = isset($result['error']['message']) ? $result['error']['message'] : 'Unknown OpenRouter Error';
+        return response()->json(['error' => 'OpenRouter says: ' . $openRouterError], 500);
     }
 }
