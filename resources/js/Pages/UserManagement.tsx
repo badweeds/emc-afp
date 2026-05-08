@@ -6,17 +6,24 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Check, X, UserCheck, Shield, Trash2, Building } from 'lucide-react';
 import { toast } from 'sonner';
 
+const militaryUnits = [
+  "Eastern Mindanao Command (EastMinCom) Headquarters",
+  "Naval Forces Eastern Mindanao (NFEM)",
+  "Tactical Operations Group 10 (TOG 10)",
+  "4th Infantry Division (4ID)",
+  "10th Infantry Division (10ID)"
+];
+
 export default function UserManagement({ users }: { users: any[] }) {
   const { auth } = usePage<any>().props;
+  const isSuperAdmin = auth.user?.role === 'super_admin';
 
-  // Handle Approving users
   const handleApprove = (id: number) => {
     router.post(`/admin/users/${id}/approve`, {}, {
       onSuccess: () => toast.success('User approved successfully!')
     });
   };
 
-  // Handle Rejecting or Deleting users
   const handleReject = (id: number) => {
     if(confirm('Are you absolutely sure you want to delete this account? This action is permanent.')) {
       router.delete(`/admin/users/${id}`, {
@@ -25,15 +32,32 @@ export default function UserManagement({ users }: { users: any[] }) {
     }
   };
 
-  // Handle updating roles
   const handleRoleChange = (id: number, newRole: string) => {
+    if (id === auth.user.id) {
+        toast.error("You cannot change your own access level!");
+        return;
+    }
+
     router.patch(`/admin/users/${id}/role`, { role: newRole }, {
       onSuccess: () => toast.success(`Role updated to ${newRole.replace('_', ' ')}`),
-      // THE FIX: Catch the limit error from the backend and display it!
       onError: (errors: any) => {
-          if (errors.role) {
-              toast.error(errors.role);
-          }
+          if (errors.role) toast.error(errors.role);
+      },
+      preserveScroll: true
+    });
+  };
+
+  // NEW: Handle updating military unit
+  const handleUnitChange = (id: number, newUnit: string) => {
+    if (id === auth.user.id) {
+        toast.error("You cannot change your own unit from this panel.");
+        return;
+    }
+
+    router.patch(`/admin/users/${id}/unit`, { unit: newUnit }, {
+      onSuccess: () => toast.success('Military Unit updated successfully!'),
+      onError: (errors: any) => {
+          if (errors.error) toast.error(errors.error);
       },
       preserveScroll: true
     });
@@ -73,7 +97,6 @@ export default function UserManagement({ users }: { users: any[] }) {
                   <TableRow key={user.id}>
                     <TableCell className="font-semibold">{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
-                    {/* THE FIX: Show the unit they registered with */}
                     <TableCell>
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 text-xs font-bold text-slate-700">
                             <Building className="size-3" />
@@ -98,7 +121,7 @@ export default function UserManagement({ users }: { users: any[] }) {
           </CardContent>
         </Card>
 
-        {/* ACTIVE USERS LIST - Includes Role Change and Delete */}
+        {/* ACTIVE USERS LIST */}
         <Card className="shadow-md bg-white border border-slate-200 border-t-4 border-t-[#7B1E1E]">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-[#1E293B]">
@@ -124,17 +147,37 @@ export default function UserManagement({ users }: { users: any[] }) {
                             <span className="text-[10px] text-slate-400 font-bold uppercase">{user.email}</span>
                         </div>
                     </TableCell>
-                    {/* THE FIX: Show the unit for approved users too */}
+                    
+                    {/* THE FIX: Military Unit Dropdown for Super Admins */}
                     <TableCell>
+                      {isSuperAdmin && user.id !== auth.user.id ? (
+                        <select 
+                          value={user.unit || ''}
+                          onChange={(e) => handleUnitChange(user.id, e.target.value)}
+                          className="text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-md px-2 py-1.5 focus:ring-2 focus:ring-[#7B1E1E] outline-none cursor-pointer max-w-[200px]"
+                        >
+                          <option value="" disabled>Select Unit...</option>
+                          {militaryUnits.map(unit => (
+                            <option key={unit} value={unit}>{unit}</option>
+                          ))}
+                        </select>
+                      ) : (
                         <span className="text-xs font-semibold text-slate-600">
                             {user.unit || 'Not Assigned'}
                         </span>
+                      )}
                     </TableCell>
+
                     <TableCell>
                       <select 
                         value={user.role} 
                         onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                        className="text-xs font-bold uppercase tracking-wider bg-slate-50 border border-slate-200 rounded-md px-3 py-1.5 focus:ring-2 focus:ring-[#7B1E1E] outline-none cursor-pointer"
+                        disabled={user.id === auth.user.id}
+                        className={`text-xs font-bold uppercase tracking-wider border rounded-md px-3 py-1.5 outline-none transition-colors ${
+                          user.id === auth.user.id 
+                            ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed opacity-70' 
+                            : 'bg-slate-50 border-slate-200 cursor-pointer focus:ring-2 focus:ring-[#7B1E1E]'
+                        }`}
                       >
                         <option value="user">User</option>
                         <option value="admin">Admin</option>
@@ -143,7 +186,6 @@ export default function UserManagement({ users }: { users: any[] }) {
                       </select>
                     </TableCell>
                     <TableCell className="text-right">
-                      {/* Only allow deletion of OTHER users, not yourself to prevent lockout */}
                       {user.id !== auth.user.id ? (
                         <div className="flex justify-end">
                           <Button 
@@ -151,7 +193,7 @@ export default function UserManagement({ users }: { users: any[] }) {
                             size="sm" 
                             className="bg-red-600 hover:bg-red-700 text-white shadow-sm"
                           >
-                            <Trash2 className="size-4 mr-1" /> Remove Account
+                            <Trash2 className="size-4 mr-1" /> Remove
                           </Button>
                         </div>
                       ) : (

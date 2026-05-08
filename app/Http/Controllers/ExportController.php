@@ -15,6 +15,12 @@ class ExportController extends Controller
 {
     public function excel()
     {
+        $user = auth()->user();
+        
+        // ACTIVITY LOG: Record the Excel download
+        $scope = in_array($user->role, ['admin', 'user']) ? $user->unit : 'ALL UNITS';
+        \App\Models\ActivityLog::log('Exported Excel', "Downloaded yearly Excel data for {$scope}");
+
         return Excel::download(new NewsExport, 'PIO_EMC_Yearly_News_Data.xlsx');
     }
 
@@ -22,16 +28,30 @@ class ExportController extends Controller
     {
         $from = $request->query('from');
         $to = $request->query('to');
+        $user = auth()->user();
         
-        $news = NewsArticle::where('status', 'approved')
+        // Base queries
+        $newsQuery = NewsArticle::where('status', 'approved')
                     ->whereBetween('date', [$from, $to])
-                    ->orderBy('date', 'asc')->get();
-        
-        $criticalNews = NewsArticle::where('status', 'approved')
+                    ->orderBy('date', 'asc');
+                    
+        $criticalQuery = NewsArticle::where('status', 'approved')
                         ->whereBetween('date', [$from, $to])
-                        ->where('category', 'Unfavorable')
-                        ->limit(3)
-                        ->get();
+                        ->where('category', 'Unfavorable');
+
+        // DATA ISOLATION: Filter by Unit if Admin or User
+        if (in_array($user->role, ['admin', 'user'])) {
+            $newsQuery->where('unit_involved', $user->unit);
+            $criticalQuery->where('unit_involved', $user->unit);
+        }
+
+        // Get the final isolated data
+        $news = $newsQuery->get();
+        $criticalNews = $criticalQuery->limit(3)->get();
+
+        // ACTIVITY LOG: Record the DOCX download
+        $scope = in_array($user->role, ['admin', 'user']) ? $user->unit : 'ALL UNITS';
+        \App\Models\ActivityLog::log('Exported DOCX', "Generated DOCX CIEMA Report for {$scope} ({$from} to {$to})");
 
         \PhpOffice\PhpWord\Settings::setOutputEscapingEnabled(true);
 

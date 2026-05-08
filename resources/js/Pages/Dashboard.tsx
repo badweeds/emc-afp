@@ -38,7 +38,7 @@ export default function Dashboard({ auth, stats, recentNews, carouselNews }: any
           <div>
             <h1 className="text-3xl font-bold text-[#1E293B] tracking-tight">Dashboard</h1>
             <p className="text-gray-500 mt-1 uppercase text-xs font-bold tracking-widest">
-              Strategic News Intelligence Overview
+              Strategic News Overview
             </p>
           </div>
           <div className="text-right">
@@ -87,7 +87,7 @@ export default function Dashboard({ auth, stats, recentNews, carouselNews }: any
             </CardHeader>
             <CardContent className="space-y-6 flex-1">
               <p className="text-sm text-gray-600 leading-relaxed">
-                The monitoring database currently contains <span className="font-bold text-[#1A237E]">{stats?.total || 0}</span> total intelligence items. 
+                The monitoring database currently contains <span className="font-bold text-[#1A237E]">{stats?.total || 0}</span> total items. 
               </p>
               
               <div className="bg-red-50 p-4 rounded-lg border border-red-100 shadow-inner">
@@ -203,7 +203,7 @@ export default function Dashboard({ auth, stats, recentNews, carouselNews }: any
                 {!recentNews || recentNews.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-20 text-gray-400 italic font-medium">
-                      Intelligence database is empty. No recent entries found.
+                      Database is empty. No recent entries found.
                     </TableCell>
                   </TableRow>
                 ) : (

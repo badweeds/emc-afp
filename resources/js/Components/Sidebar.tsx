@@ -9,7 +9,8 @@ import {
   LogOut,
   Users,
   Settings as SettingsIcon,
-  ClipboardList 
+  ClipboardList,
+  History // Added History Icon
 } from 'lucide-react';
 
 // --- Animation Configurations ---
@@ -33,10 +34,12 @@ export default function Sidebar() {
   const auth = props.auth;
   
   const userRole = auth.user?.role;
+  
+  // THE FIX: Separate the roles properly
+  const isSuperAdmin = userRole === 'super_admin';
   const isAdmin = userRole === 'admin' || userRole === 'super_admin';
   const isCommander = userRole === 'commander';
 
-  // THE FIX: Only push these extra links into the array if the user is NOT a commander
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     ...(!isCommander ? [
@@ -105,28 +108,50 @@ export default function Sidebar() {
           );
         })}
 
-        {/* ADMIN ONLY SECTION */}
-        {isAdmin && (
-          <>
-            <motion.div variants={linkVariants} whileHover="hover" whileTap="tap">
-              <Link
-                href="/admin/users"
-                className={`group flex items-center px-4 py-3 text-sm font-bold transition-colors duration-200 rounded-lg mt-4 ${
-                  url.startsWith('/admin/users') 
-                    ? 'bg-[#FBC02D] text-[#1A237E] shadow-md border-l-4 border-white' 
-                    : 'text-slate-300 hover:bg-white/10 hover:text-white'
-                }`}
-              >
-                <Users className={`mr-3 size-5 ${url.startsWith('/admin/users') ? 'text-[#1A237E]' : 'text-slate-400 group-hover:text-white'}`} />
-                User Approval
-              </Link>
-            </motion.div>
+        {/* ======================================= */}
+        {/* SUPER ADMIN ONLY SECTION                */}
+        {/* ======================================= */}
+        {isSuperAdmin && (
+            <>
+              <motion.div variants={linkVariants} whileHover="hover" whileTap="tap">
+                <Link
+                  href="/admin/users"
+                  className={`group flex items-center px-4 py-3 text-sm font-bold transition-colors duration-200 rounded-lg mt-4 ${
+                    url.startsWith('/admin/users') 
+                      ? 'bg-[#FBC02D] text-[#1A237E] shadow-md border-l-4 border-white' 
+                      : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                  }`}
+                >
+                  <Users className={`mr-3 size-5 ${url.startsWith('/admin/users') ? 'text-[#1A237E]' : 'text-slate-400 group-hover:text-white'}`} />
+                  User Approval
+                </Link>
+              </motion.div>
 
-            {/* Pending News Link */}
+              {/* NEW: System Logs Link */}
+              <motion.div variants={linkVariants} whileHover="hover" whileTap="tap">
+                <Link
+                  href="/admin/logs"
+                  className={`group flex items-center px-4 py-3 text-sm font-bold transition-colors duration-200 rounded-lg mt-1 ${
+                    url.startsWith('/admin/logs') 
+                      ? 'bg-[#FBC02D] text-[#1A237E] shadow-md border-l-4 border-white' 
+                      : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                  }`}
+                >
+                  <History className={`mr-3 size-5 ${url.startsWith('/admin/logs') ? 'text-[#1A237E]' : 'text-slate-400 group-hover:text-white'}`} />
+                  System Logs
+                </Link>
+              </motion.div>
+            </>
+        )}
+
+        {/* ======================================= */}
+        {/* ADMIN & SUPER ADMIN SECTION             */}
+        {/* ======================================= */}
+        {isAdmin && (
             <motion.div variants={linkVariants} whileHover="hover" whileTap="tap">
               <Link
                 href="/admin/news/pending"
-                className={`group flex items-center px-4 py-3 text-sm font-bold transition-colors duration-200 rounded-lg mt-1 ${
+                className={`group flex items-center px-4 py-3 text-sm font-bold transition-colors duration-200 rounded-lg ${isSuperAdmin ? 'mt-1' : 'mt-4'} ${
                   url.startsWith('/admin/news/pending') 
                     ? 'bg-[#FBC02D] text-[#1A237E] shadow-md border-l-4 border-white' 
                     : 'text-slate-300 hover:bg-white/10 hover:text-white'
@@ -136,7 +161,6 @@ export default function Sidebar() {
                 Pending News
               </Link>
             </motion.div>
-          </>
         )}
 
         {/* SETTINGS SECTION (Shows for Everyone) */}

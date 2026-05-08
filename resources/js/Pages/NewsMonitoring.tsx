@@ -59,9 +59,10 @@ const mediaSources = {
 const allSourcesFlat = [...mediaSources.Local, ...mediaSources.National, ...mediaSources.International];
 
 export default function NewsMonitoring({ news = [] }: { news: NewsItem[] }) {
-  // THE FIX: Grab the current logged-in user from Inertia's page props
   const { auth } = usePage<any>().props;
-  const isAdmin = auth.user?.role === 'admin';
+  
+  // THE FIX: Allow Super Admins to see the edit/delete buttons
+  const isSuperAdmin = auth.user?.role === 'super_admin';
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSource, setFilterSource] = useState<string>('all');
@@ -168,8 +169,8 @@ export default function NewsMonitoring({ news = [] }: { news: NewsItem[] }) {
                             <Eye className="size-4" />
                           </Button>
                           
-                          {/* THE FIX: Only render Edit and Delete buttons if the user is an admin */}
-                          {isAdmin && (
+                          {/* THE FIX: Only super admins can see the edit and delete buttons */}
+                          {isSuperAdmin && (
                             <>
                               <Button variant="ghost" size="sm" onClick={() => setEditNews(item)} className="text-blue-600 hover:text-blue-800 hover:bg-blue-50">
                                 <Pencil className="size-4" />
@@ -358,12 +359,12 @@ export function EditModal({ item, onClose }: { item: NewsItem; onClose: () => vo
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-                <Label className="font-bold text-slate-700">Date *</Label>
-                <Input type="date" value={data.date} onChange={e => setData('date', e.target.value)} required className="bg-white text-slate-900 border-slate-300 focus:ring-[#7B1E1E]" />
+              <Label className="font-bold text-slate-700">Date *</Label>
+              <Input type="date" value={data.date} onChange={e => setData('date', e.target.value)} required className="bg-white text-slate-900 border-slate-300 focus:ring-[#7B1E1E]" />
             </div>
             <div className="space-y-2">
-                <Label className="font-bold text-slate-700">News Link (URL)</Label>
-                <Input value={data.url} onChange={e => setData('url', e.target.value)} placeholder="https://" className="bg-white text-slate-900 border-slate-300 focus:ring-[#7B1E1E]" />
+              <Label className="font-bold text-slate-700">News Link (URL)</Label>
+              <Input value={data.url} onChange={e => setData('url', e.target.value)} placeholder="https://" className="bg-white text-slate-900 border-slate-300 focus:ring-[#7B1E1E]" />
             </div>
           </div>
 

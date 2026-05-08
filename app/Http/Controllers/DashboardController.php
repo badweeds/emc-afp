@@ -9,16 +9,33 @@ use Inertia\Inertia;
 
 class DashboardController extends Controller
 {
+    // ==========================================
+    // DATA ISOLATION LOGIC
+    // ==========================================
+    private function getBaseNewsQuery()
+    {
+        $user = auth()->user();
+        $query = NewsArticle::where('status', 'approved');
+
+        // If it's a regular Admin or User, ONLY show them news for their designated unit
+        if (in_array($user->role, ['admin', 'user'])) {
+            $query->where('unit_involved', $user->unit);
+        }
+
+        return $query;
+    }
+
     public function index()
     {
         $user = auth()->user();
+        $baseQuery = $this->getBaseNewsQuery();
         
-        // Base stats used by both dashboards
+        // Base stats used by both dashboards (Filtered by unit)
         $stats = [
-            'total' => NewsArticle::where('status', 'approved')->count(),
-            'favorable' => NewsArticle::where('status', 'approved')->where('category', 'Favorable')->count(),
-            'neutral' => NewsArticle::where('status', 'approved')->where('category', 'Neutral')->count(),
-            'unfavorable' => NewsArticle::where('status', 'approved')->where('category', 'Unfavorable')->count(),
+            'total' => (clone $baseQuery)->count(),
+            'favorable' => (clone $baseQuery)->where('category', 'Favorable')->count(),
+            'neutral' => (clone $baseQuery)->where('category', 'Neutral')->count(),
+            'unfavorable' => (clone $baseQuery)->where('category', 'Unfavorable')->count(),
         ];
 
         // ==========================================
@@ -27,13 +44,13 @@ class DashboardController extends Controller
         if ($user && $user->role === 'commander') {
             
             // Get reports grouped by military unit
-            $unitStats = NewsArticle::where('status', 'approved')
+            $unitStats = (clone $baseQuery)
                 ->selectRaw('unit_involved, count(*) as count')
                 ->groupBy('unit_involved')
                 ->get();
 
             // Get top 5 most discussed topics
-            $topicStats = NewsArticle::where('status', 'approved')
+            $topicStats = (clone $baseQuery)
                 ->selectRaw('topic, count(*) as count')
                 ->groupBy('topic')
                 ->orderBy('count', 'desc')
@@ -45,7 +62,7 @@ class DashboardController extends Controller
                 'unitStats' => $unitStats,
                 'topicStats' => $topicStats,
                 // Commander gets the 10 most recent feed items
-                'recentNews' => NewsArticle::where('status', 'approved')->orderBy('date', 'desc')->limit(10)->get(),
+                'recentNews' => (clone $baseQuery)->orderBy('date', 'desc')->limit(10)->get(),
             ]);
         }
 
@@ -54,8 +71,8 @@ class DashboardController extends Controller
         // ==========================================
         return Inertia::render('Dashboard', [
             'stats' => $stats,
-            'recentNews' => NewsArticle::where('status', 'approved')->orderBy('date', 'desc')->limit(5)->get(),
-            'carouselNews' => NewsArticle::where('status', 'approved')->whereNotNull('image_path')->orderBy('date', 'desc')->limit(10)->get()
+            'recentNews' => (clone $baseQuery)->orderBy('date', 'desc')->limit(5)->get(),
+            'carouselNews' => (clone $baseQuery)->whereNotNull('image_path')->orderBy('date', 'desc')->limit(10)->get()
         ]);
     }
 
@@ -67,7 +84,8 @@ class DashboardController extends Controller
         if ($currentUser->role === 'super_admin') {
             // Super Admin sees all roles
         } elseif ($currentUser->role === 'admin') {
-            $query->where('role', 'user');
+            // Admins can only see Users in THEIR unit
+            $query->where('role', 'user')->where('unit', $currentUser->unit);
         } else {
             $query->where('id', -1); 
         }
@@ -79,16 +97,22 @@ class DashboardController extends Controller
 
     public function monitoring()
     {
-        return Inertia::render('NewsMonitoring', ['news' => NewsArticle::where('status', 'approved')->orderBy('date', 'desc')->get()]);
+        return Inertia::render('NewsMonitoring', [
+            'news' => $this->getBaseNewsQuery()->orderBy('date', 'desc')->get()
+        ]);
     }
 
     public function analytics()
     {
-        return Inertia::render('Analytics', ['news' => NewsArticle::where('status', 'approved')->get()]);
+        return Inertia::render('Analytics', [
+            'news' => $this->getBaseNewsQuery()->get()
+        ]);
     }
 
     public function reports()
     {
-        return Inertia::render('Reports', ['news' => NewsArticle::where('status', 'approved')->orderBy('date', 'desc')->get()]);
+        return Inertia::render('Reports', [
+            'news' => $this->getBaseNewsQuery()->orderBy('date', 'desc')->get()
+        ]);
     }
 }

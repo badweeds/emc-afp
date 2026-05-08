@@ -14,7 +14,15 @@ class NewsExport implements FromCollection, WithHeadings, WithMapping, ShouldAut
 {
     public function collection()
     {
-        return NewsArticle::orderBy('date', 'asc')->get();
+        $user = auth()->user();
+        $query = NewsArticle::where('status', 'approved')->orderBy('date', 'asc');
+
+        // DATA ISOLATION: Only export news for this specific unit
+        if (in_array($user->role, ['admin', 'user'])) {
+            $query->where('unit_involved', $user->unit);
+        }
+
+        return $query->get();
     }
 
     public function headings(): array

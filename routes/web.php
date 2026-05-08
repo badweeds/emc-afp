@@ -39,7 +39,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/admin/users', [UserManagementController::class, 'index'])->name('admin.users');
         Route::post('/admin/users/{user}/approve', [UserManagementController::class, 'approve'])->name('admin.users.approve');
         Route::patch('/admin/users/{user}/role', [UserManagementController::class, 'updateRole'])->name('admin.users.role');
+        Route::patch('/admin/users/{user}/unit', [UserManagementController::class, 'updateUnit'])->name('admin.users.updateUnit');
         Route::delete('/admin/users/{user}', [UserManagementController::class, 'destroy'])->name('admin.users.reject');
+        Route::get('/admin/logs', [App\Http\Controllers\ActivityLogController::class, 'index'])->name('admin.logs');
     });
 
     // --- 3. ADMIN & SUPER ADMIN ONLY (Approvals, Editing, Deleting) ---
@@ -57,8 +59,9 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/analyze-news', [NewsController::class, 'analyze']);
     });
 
-    // --- 5. READ-ONLY MONITORS (Admin, Super Admin, Commander) ---
-    Route::middleware(['role:admin,super_admin,commander'])->group(function () {
+    // --- 5. READ-ONLY MONITORS (User, Admin, Super Admin, Commander) ---
+    // THE FIX: Added 'user' to this middleware group so they can access these pages
+    Route::middleware(['role:user,admin,super_admin,commander'])->group(function () {
         Route::get('/monitoring', [DashboardController::class, 'monitoring'])->name('monitoring');
         Route::get('/analytics', [DashboardController::class, 'analytics'])->name('analytics');
         Route::get('/reports', [DashboardController::class, 'reports'])->name('reports');
