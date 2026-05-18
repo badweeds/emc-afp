@@ -5,12 +5,19 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\NewsArticle;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Http;
 
 class NewsController extends Controller
 {
     public function create()
     {
         return Inertia::render('AddNews');
+    }
+
+    // Renders the dedicated Open-Source Media Radar screen via Inertia
+    public function publicStream()
+    {
+        return Inertia::render('PublicStream');
     }
 
     public function pending()
@@ -24,7 +31,6 @@ class NewsController extends Controller
         }
 
         return Inertia::render('PendingNews', [
-            // Ensure the variable name matches what your PendingNews.tsx expects ('pendingNews' or 'news')
             'pendingNews' => $query->get()
         ]);
     }
@@ -41,7 +47,7 @@ class NewsController extends Controller
         $newsArticle->update(['status' => 'approved']);
         
         // ACTIVITY LOG: Track the approval
-        \App\Models\ActivityLog::log('Approved News', "Approved intelligence report: '{$newsArticle->title}'");
+        \App\Models\ActivityLog::log('Approved News', "Approved report: '{$newsArticle->title}'");
 
         return redirect()->back();
     }
@@ -84,7 +90,7 @@ class NewsController extends Controller
 
         // ACTIVITY LOG: Track creation
         $logAction = $validated['status'] === 'approved' ? 'Created & Approved News' : 'Submitted Pending News';
-        \App\Models\ActivityLog::log($logAction, "Added intelligence report: '{$news->title}' for unit {$news->unit_involved}");
+        \App\Models\ActivityLog::log($logAction, "Added report: '{$news->title}' for unit {$news->unit_involved}");
 
         return redirect()->back();
     }
@@ -118,7 +124,7 @@ class NewsController extends Controller
         $newsArticle->update($validated);
 
         // ACTIVITY LOG: Track the update
-        \App\Models\ActivityLog::log('Edited News', "Updated intelligence report: '{$newsArticle->title}'");
+        \App\Models\ActivityLog::log('Edited News', "Updated report: '{$newsArticle->title}'");
 
         return redirect()->back();
     }
@@ -143,81 +149,202 @@ class NewsController extends Controller
         return redirect()->back();
     }
 
+    // LIVE STREAM AGGREGATOR: Filtered dynamically via User Selection (Philippines vs International)
+    public function searchPublicNews(Request $request)
+    {
+        $userInput = $request->query('query');
+        $scopeFilter = $request->query('scope', 'Philippines'); // Capture selected scope parameter
+        
+        // Isolate to military field keywords exclusively
+        $militaryBoundaryFilter = '(military OR navy OR "air force" OR "airforce" OR "armed forces" OR encounter OR afp OR army OR EastMinCom OR "Eastern Mindanao Command" OR 10ID OR 4ID OR clash OR insurgency OR defense OR soliman OR "tactical operations")';
+        
+        // Generate the rolling 2-month cut-off date string for Google's search parameters
+        $twoMonthsAgoDate = date('Y-m-d', strtotime('-2 months'));
+        $rollingDateBoundaryFilter = 'after:' . $twoMonthsAgoDate;
+        
+        if (empty($userInput)) {
+            $searchTerm = '("Eastern Mindanao Command" OR "EastMinCom" OR "10th Infantry Division" OR "4th Infantry Division") ' . $militaryBoundaryFilter . ' ' . $rollingDateBoundaryFilter;
+        } else {
+            $searchTerm = '(' . $userInput . ') ' . $militaryBoundaryFilter . ' ' . $rollingDateBoundaryFilter;
+        }
+        
+        // DYNAMIC TARGET PROFILE RESOLUTION: Point index endpoints based on the toggle scope metric
+        if (strtolower($scopeFilter) === 'international') {
+            $url = 'https://news.google.com/rss/search?q=' . urlencode($searchTerm) . '&hl=en-US&gl=US&ceid=US:en';
+        } else {
+            $url = 'https://news.google.com/rss/search?q=' . urlencode($searchTerm) . '&hl=en-PH&gl=PH&ceid=PH:en';
+        }
+        
+        try {
+            if (app()->environment('local')) {
+                $response = Http::timeout(10)->withoutVerifying()->get($url);
+            } else {
+                $response = Http::timeout(10)->get($url);
+            }
+
+            if ($response->failed()) {
+                return response()->json(['error' => 'Failed to reach public news network.'], 500);
+            }
+            
+            $xml = simplexml_load_string($response->body());
+            $articles = [];
+            
+            $currentYear = date('Y');
+            $cutoffTimestamp = strtotime('-2 months midnight');
+
+            if ($xml && isset($xml->channel->item)) {
+                foreach ($xml->channel->item as $item) {
+                    $pubDateStr = (string) $item->pubDate;
+                    $articleTimestamp = strtotime($pubDateStr);
+
+                    // Skip anything older than 2 months ago
+                    if ($articleTimestamp < $cutoffTimestamp) {
+                        continue;
+                    }
+
+                    // Drop items if they aren't from the current year (2026)
+                    if (date('Y', $articleTimestamp) !== $currentYear) {
+                        continue;
+                    }
+
+                    $rawTitle = (string) $item->title;
+                    $titleParts = explode(' - ', $rawTitle);
+                    $cleanTitle = trim($titleParts[0]);
+                    $source = isset($titleParts[1]) ? trim($titleParts[1]) : 'Public Media';
+                    
+                    $articles[] = [
+                        'title' => $cleanTitle,
+                        'url' => (string) $item->link,
+                        'media_outlet' => $source,
+                        'date' => date('Y-m-d', $articleTimestamp),
+                    ];
+                }
+            }
+
+            // Chronological Sort
+            usort($articles, function ($a, $b) {
+                return strcmp($b['date'], $a['date']);
+            });
+            
+            return response()->json($articles);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Network error: ' . $e->getMessage()], 500);
+        }
+    }
+
+    // AUTOMATED TEXT SCRAPING ANALYSIS ROUTINE
     public function analyze(Request $request)
     {
-        // 1. Get the raw text from the frontend
         $request->validate([
-            'content' => 'required|string'
+            'content' => 'nullable|string',
+            'url' => 'nullable|string',
+            'title' => 'nullable|string',
+            'media_outlet' => 'nullable|string',
+            'date' => 'nullable|string'
         ]);
 
         $newsContent = $request->input('content');
+        $urlInput = $request->input('url');
+        $titleInput = $request->input('title');
+        $mediaInput = $request->input('media_outlet');
+        $dateInput = $request->input('date');
+
+        if (empty($newsContent) && !empty($urlInput)) {
+            try {
+                $webResponse = Http::withHeaders([
+                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                ])->timeout(10)->withoutVerifying()->get($urlInput);
+
+                if ($webResponse->successful()) {
+                    $html = $webResponse->body();
+                    $html = preg_replace('/<script\b[^>]*>(.*?)<\/script>/is', "", $html);
+                    $html = preg_replace('/<style\b[^>]*>(.*?)<\/style>/is', "", $html);
+                    $newsContent = trim(html_entity_decode(strip_tags($html)));
+                    $newsContent = preg_replace('/\s+/', ' ', $newsContent);
+                    $newsContent = substr($newsContent, 0, 20000);
+                }
+            } catch (\Exception $e) {
+                // Suppress and failover to metadata mode smoothly
+            }
+        }
+
+        // METADATA FALLBACK
+        if (empty($newsContent) || strlen($newsContent) < 150) {
+            $newsContent = "ANALYSIS BOUNDARY INSTRUCTION: Direct webpage text parsing was restricted by host firewall protections. Synthesize and reconstruct the operational parameters for this record based on its verified public metadata indices:
+            - Target Headline: {$titleInput}
+            - Publisher Network: {$mediaInput}
+            - Publication Date: {$dateInput}
+            - Source URL Pathway: {$urlInput}
+            
+            Use your advanced military reasoning capabilities to draft a concise, professional 1-2 sentence executive operational summary matching this exact headline context, track down the correct strategic dropdown fields, and map all variables to the JSON specification parameters completely.";
+        }
+
+        $apiKey = env('GEMINI_API_KEY');
+        if (empty($apiKey)) {
+            return response()->json(['error' => 'System configuration error: Missing Gemini API Key.'], 500);
+        }
+
+        $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . $apiKey;
+
+        $validUnits = "Eastern Mindanao Command (EastMinCom) Headquarters, Naval Forces Eastern Mindanao (NFEM), Tactical Operations Group 10 (TOG 10), 4th Infantry Division (4ID), 10th Infantry Division (10ID)";
+        $validTopics = "Accomplishment, Checkpoint Seizure, FRs Reconciliation, HADR Operations, CTG Mem Surrender, Surrender/Arms Cache, Encounter, Arms Cache, Culture of Security, Destabilization, NPA Dismantling, Unit Installation, E-CLIP Programs, NPA Ambush/Atrocity, Outreach Program, Commemoration, CSP, New Year's Call, POs Programs, New/Upgraded Facility, New Commander/Officer, Security Operations, Unit Visit, Blood Donation, Killed Soldier, Reservist Affairs, BGen Durante Case, Unit Anniversary, NPA Arrest, New Assets, CTG Mem Abduction, POs Issues/Concerns, Persona Non-Grata, Harassment by Troops, ITDS Sustainment, MILF Holding of Troops, Sportsfest, Troops Education, Camp Shooting, Drug Involvement, AFP Recruitment, Morale & Welfare, Soldier Recognition, Partners Engagement, Training/Exercise, Bomb/IED Retrieval, Spiritual Enhancement, BDP Project, Killed NPA Assitance, Chad Booc Death, NPA Condemnation, FCEMC Appointment, POC Engagements, GAD, Int'l Military Visit, Youth Empowerment, Farewell Visit, Govt Official Killing, Insurgency-Free, Ex-Troops Monitoring, Campaign Plan, Peace Forum, Stakeholder Support, Stakeholder Visit, MOA/Partnership, Environmental Activity, Search Operation, Promotion, PAGs Update, Aerial/Artillery Bombing, Illegal Firearms, Pilgram Visit, Kidnapped Civilians, Transport Assistance, Security Update, Peace Rally, Symposium, CTG Monitoring, Civilian Killing, AOR Expansion, Fake Soldier, Event Participation, CORPAT, Illegal Mining, FB Page Hacking, Unit Recognition, Unit Send-Off, Bomb Explosion/Scare, Friendly Games, Smuggling Apprehension, PMA Examination, Extrajudicial Killings, Peace Monument, White Area Operations, Election Security, Stress Debriefing, New Soldiers, Ceasefire, Ramming Incident, Troop Accident";
+
+        $systemPrompt = 'You are a operational media analyst for the Eastern Mindanao Command (EMC). Analyze the provided unstructured text content page and return ONLY a valid JSON object. Do not include markdown wraps.
+        The JSON must have these exact keys and format constraints:
+        - "title": a strong professional headline matching the true article context.
+        - "summary": a brief 1-2 sentence operational summary detailing the main operational metrics.
+        - "category": Must be exactly one of: "Favorable", "Neutral", or "Unfavorable".
+        - "media_outlet": the news source/media outlet name.
+        - "reporter": the journalist name, or empty string if not found.
+        - "scope": Must be exactly one of: "Local", "National", or "International".
+        - "url": the source link path.
+        - "date": the date of the news in YYYY-MM-DD format.
         
-        // 2. OpenRouter API Endpoint
-        $url = 'https://openrouter.ai/api/v1/chat/completions';
-        
-        // 3. The Military Prompt Payload (Removed 'response_format' as free models often reject it)
+        CRITICAL DROPDOWN MATCHING RULES:
+        - "unit_involved": You MUST choose the closest match from this list ONLY: [' . $validUnits . ']. Do not abbreviate or change words.
+        - "topic": You MUST choose the single closest matching topic from this list ONLY: [' . $validTopics . ']. Do not invent new topics.';
+
+        $combinedPrompt = $systemPrompt . "\n\nNews to Analyze:\n" . $newsContent;
+
         $data = [
-            'model' => 'meta-llama/llama-3.1-8b-instruct:free',
-            'messages' => [
-                [
-                    'role' => 'system',
-                    'content' => 'You are a military intelligence analyst for the Eastern Mindanao Command (EMC). Analyze the provided news text and return ONLY a valid JSON object with no markdown formatting. The JSON must have these exact keys: "title" (a strong professional title), "summary" (a brief 1-2 sentence intelligence summary), "topic" (the main subject, e.g., Insurgency, Environment, Politics), and "category" (Must be exactly one of: "Favorable", "Neutral", or "Unfavorable").'
-                ],
-                [
-                    'role' => 'user',
-                    'content' => $newsContent
-                ]
-            ]
+            'contents' => [['parts' => [['text' => $combinedPrompt]]]],
+            'generationConfig' => ['responseMimeType' => 'application/json']
         ];
 
-        // 4. Send the request via cURL
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Authorization: Bearer ' . env('OPENROUTER_API_KEY'),
-            'Content-Type: application/json',
-            'HTTP-Referer: http://localhost:8000', // OpenRouter sometimes requires this
-            'X-Title: EMC News System'
-        ]);
-        
-        // Bypass SSL for Windows local servers
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0); 
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0); 
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 35); 
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 15); 
+
+        if (app()->environment('local')) {
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+        }
 
         $response = curl_exec($ch);
         $err = curl_error($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        // 5. Handle Network Errors
-        if ($err) {
-            return response()->json(['error' => 'cURL Network Error: ' . $err], 500);
-        }
+        if ($err) return response()->json(['error' => 'cURL Error: ' . $err], 500);
+        if ($httpCode !== 200) return response()->json(['error' => 'Gemini Registry Error: ' . $response], 500);
 
-        // 6. Decode the OpenRouter response
         $result = json_decode($response, true);
-        
-        // 7. Check if the AI actually gave us a choice/response
-        if (isset($result['choices'][0]['message']['content'])) {
-            $rawContent = $result['choices'][0]['message']['content'];
-            
-            // CLEANUP FIX: Strip out markdown blocks if the AI added them by mistake
+        if (isset($result['candidates'][0]['content']['parts'][0]['text'])) {
+            $rawContent = $result['candidates'][0]['content']['parts'][0]['text'];
             $rawContent = preg_replace('/```json\s*/', '', $rawContent);
             $rawContent = preg_replace('/```\s*/', '', $rawContent);
             $rawContent = trim($rawContent);
 
             $aiData = json_decode($rawContent, true);
-            
             if ($aiData) {
-                return response()->json($aiData); // Success!
-            } else {
-                return response()->json(['error' => 'AI returned invalid text format instead of JSON.'], 500);
+                return response()->json($aiData);
             }
         }
-
-        // 8. If we reached here, OpenRouter sent an API error (like rate limits). Let's print it exactly!
-        $openRouterError = isset($result['error']['message']) ? $result['error']['message'] : 'Unknown OpenRouter Error';
-        return response()->json(['error' => 'OpenRouter says: ' . $openRouterError], 500);
+        return response()->json(['error' => 'Gemini structure processing failed.'], 500);
     }
 }

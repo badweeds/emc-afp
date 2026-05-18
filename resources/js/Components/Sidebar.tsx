@@ -10,7 +10,8 @@ import {
   Users,
   Settings as SettingsIcon,
   ClipboardList,
-  History // Added History Icon
+  History,
+  Globe // Added Globe Icon for OSINT Streamer Radar
 } from 'lucide-react';
 
 // --- Animation Configurations ---
@@ -35,7 +36,7 @@ export default function Sidebar() {
   
   const userRole = auth.user?.role;
   
-  // THE FIX: Separate the roles properly
+  // Separate the roles properly
   const isSuperAdmin = userRole === 'super_admin';
   const isAdmin = userRole === 'admin' || userRole === 'super_admin';
   const isCommander = userRole === 'commander';
@@ -43,6 +44,7 @@ export default function Sidebar() {
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     ...(!isCommander ? [
+      { name: 'Live Media Monitor', href: '/public-stream', icon: Globe }, // NEW TAB: Dedicated Open-Source Radar
       { name: 'Add News', href: '/add-news', icon: PlusCircle },
       { name: 'Monitoring', href: '/monitoring', icon: Search },
       { name: 'Analytics', href: '/analytics', icon: BarChart3 },
@@ -82,7 +84,7 @@ export default function Sidebar() {
               <span className="text-white">EMC </span>
               <span className="text-[#FBC02D]">NEWS</span>
             </span>
-            <span className="text-[10px] text-slate-290 uppercase tracking-widest font-semibold">Eastmincom AFP</span>
+            <span className="text-[10px] text-slate-200 uppercase tracking-widest font-semibold">Eastmincom AFP</span>
           </div>
         </motion.div>
       </div>
@@ -127,7 +129,7 @@ export default function Sidebar() {
                 </Link>
               </motion.div>
 
-              {/* NEW: System Logs Link */}
+              {/* System Logs Link */}
               <motion.div variants={linkVariants} whileHover="hover" whileTap="tap">
                 <Link
                   href="/admin/logs"

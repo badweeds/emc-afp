@@ -52,15 +52,19 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/news/{newsArticle}', [NewsController::class, 'destroy']);
     });
 
-    // --- 4. EVERYONE EXCEPT COMMANDER (Can Add & AI Analyze News) ---
+    // --- 4. EVERYONE EXCEPT COMMANDER (Can Add, AI Analyze, & Monitor Public News) ---
     Route::middleware(['role:user,admin,super_admin'])->group(function () {
         Route::get('/add-news', [NewsController::class, 'create']);
+        Route::get('/news/create', [NewsController::class, 'create']); // FIX: Support fallback direct creation path
         Route::post('/news', [NewsController::class, 'store']);
         Route::post('/analyze-news', [NewsController::class, 'analyze']);
+        
+        // LIVE STREAM ARCHITECTURE ROUTES
+        Route::get('/public-stream', [NewsController::class, 'publicStream'])->name('news.public-stream');
+        Route::get('/api/search-public-news', [NewsController::class, 'searchPublicNews']);
     });
 
     // --- 5. READ-ONLY MONITORS (User, Admin, Super Admin, Commander) ---
-    // THE FIX: Added 'user' to this middleware group so they can access these pages
     Route::middleware(['role:user,admin,super_admin,commander'])->group(function () {
         Route::get('/monitoring', [DashboardController::class, 'monitoring'])->name('monitoring');
         Route::get('/analytics', [DashboardController::class, 'analytics'])->name('analytics');
