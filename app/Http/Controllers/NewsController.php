@@ -64,7 +64,7 @@ class NewsController extends Controller
             'date' => 'required', 
             'url' => 'nullable|string',
             'scope' => 'nullable|string',
-            'image' => 'nullable|image|max:5120' 
+            'image' => 'nullable|image|max:40000' 
         ]);
 
         $user = auth()->user();
@@ -108,7 +108,7 @@ class NewsController extends Controller
             'title' => 'required', 'summary' => 'required', 'media_outlet' => 'required',
             'reporter' => 'nullable|string', 'topic' => 'required', 'unit_involved' => 'required', 
             'category' => 'required', 'date' => 'required', 'url' => 'nullable|string',
-            'scope' => 'nullable|string', 'image' => 'nullable|image|max:5120'
+            'scope' => 'nullable|string', 'image' => 'nullable|image|max:40000'
         ]);
 
         // Prevent admin from maliciously changing the unit_involved to bypass isolation
@@ -149,29 +149,34 @@ class NewsController extends Controller
         return redirect()->back();
     }
 
-    // LIVE STREAM AGGREGATOR: Filtered dynamically via User Selection (Philippines vs International)
+    // LIVE STREAM AGGREGATOR: Bulletproof filtering for Philippines vs International
     public function searchPublicNews(Request $request)
     {
         $userInput = $request->query('query');
-        $scopeFilter = $request->query('scope', 'Philippines'); // Capture selected scope parameter
+        $scopeFilter = $request->query('scope', 'Philippines'); 
         
-        // Isolate to military field keywords exclusively
+        // Base military keywords
         $militaryBoundaryFilter = '(military OR navy OR "air force" OR "airforce" OR "armed forces" OR encounter OR afp OR army OR EastMinCom OR "Eastern Mindanao Command" OR 10ID OR 4ID OR clash OR insurgency OR defense OR soliman OR "tactical operations")';
         
-        // Generate the rolling 2-month cut-off date string for Google's search parameters
+        // Rolling 2-month boundary
         $twoMonthsAgoDate = date('Y-m-d', strtotime('-2 months'));
         $rollingDateBoundaryFilter = 'after:' . $twoMonthsAgoDate;
         
+        // Define base user search
         if (empty($userInput)) {
-            $searchTerm = '("Eastern Mindanao Command" OR "EastMinCom" OR "10th Infantry Division" OR "4th Infantry Division") ' . $militaryBoundaryFilter . ' ' . $rollingDateBoundaryFilter;
+            $baseSearch = '("Eastern Mindanao Command" OR "EastMinCom" OR "10th Infantry Division" OR "4th Infantry Division")';
         } else {
-            $searchTerm = '(' . $userInput . ') ' . $militaryBoundaryFilter . ' ' . $rollingDateBoundaryFilter;
+            $baseSearch = '(' . $userInput . ')';
         }
         
-        // DYNAMIC TARGET PROFILE RESOLUTION: Point index endpoints based on the toggle scope metric
+        // DYNAMIC TARGET PROFILE RESOLUTION: Enforce strict geo-boundaries via operators
         if (strtolower($scopeFilter) === 'international') {
+            // INTERNATIONAL: Actively exclude .ph local domains and set US global parameters
+            $searchTerm = $baseSearch . ' ' . $militaryBoundaryFilter . ' ' . $rollingDateBoundaryFilter . ' -site:.ph';
             $url = 'https://news.google.com/rss/search?q=' . urlencode($searchTerm) . '&hl=en-US&gl=US&ceid=US:en';
         } else {
+            // PHILIPPINES: Force the location:philippines operator to restrict results natively
+            $searchTerm = $baseSearch . ' ' . $militaryBoundaryFilter . ' ' . $rollingDateBoundaryFilter . ' location:philippines';
             $url = 'https://news.google.com/rss/search?q=' . urlencode($searchTerm) . '&hl=en-PH&gl=PH&ceid=PH:en';
         }
         

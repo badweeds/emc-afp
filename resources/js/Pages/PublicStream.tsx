@@ -1,32 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import { Head, router } from '@inertiajs/react';
+import { Head } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 import { Input } from '@/Components/ui/input';
 import { Button } from '@/Components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import { toast } from 'sonner';
-import { Globe, Search, Loader2, Sparkles, ExternalLink } from 'lucide-react';
+import { Globe, Search, Loader2, Sparkles, ExternalLink, CheckCircle } from 'lucide-react';
 import axios from 'axios';
 
 export default function PublicStream() {
   const [searchQuery, setSearchQuery] = useState('Eastern Mindanao Command');
-  const [selectedScope, setSelectedScope] = useState('Philippines'); // Scope filter parameter state
+  const [selectedScope, setSelectedScope] = useState('Philippines');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [analyzingUrl, setAnalyzingUrl] = useState<string | null>(null);
+  const [analyzedUrls, setAnalyzedUrls] = useState<string[]>([]);
 
   const fetchLiveStream = async () => {
     setIsSearching(true);
+
     try {
-      // Pass the selected scope toggle directly to the background API
-      const response = await axios.get('/api/search-public-news', { 
-        params: { 
+      const response = await axios.get('/api/search-public-news', {
+        params: {
           query: searchQuery,
-          scope: selectedScope 
-        } 
+          scope: selectedScope
+        }
       });
+
       setSearchResults(response.data);
+
       if (response.data.length === 0) {
         toast.info("No matching updates located within this search scope in the past 2 months.");
       }
@@ -38,40 +41,119 @@ export default function PublicStream() {
     }
   };
 
-  // Re-fetch automatically whenever the user changes the location filter option
   useEffect(() => {
     fetchLiveStream();
   }, [selectedScope]);
 
   const handleLiveAIAnalysis = async (article: any) => {
+    const newTab = window.open('', '_blank');
+
+    if (newTab) {
+      newTab.document.write(`
+        <html>
+          <head>
+            <title>AI Analysis Loading...</title>
+            <style>
+              body {
+                margin: 0;
+                height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: #f8fafc;
+                font-family: Arial, sans-serif;
+                color: #0f172a;
+                flex-direction: column;
+              }
+
+              .spinner {
+                width: 60px;
+                height: 60px;
+                border: 5px solid #cbd5e1;
+                border-top-color: #0284c7;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+                margin-bottom: 20px;
+              }
+
+              @keyframes spin {
+                to {
+                  transform: rotate(360deg);
+                }
+              }
+
+              .title {
+                font-size: 22px;
+                font-weight: bold;
+                margin-bottom: 8px;
+              }
+
+              .subtitle {
+                font-size: 14px;
+                color: #475569;
+                text-align: center;
+                max-width: 400px;
+                line-height: 1.5;
+              }
+            </style>
+          </head>
+
+          <body>
+            <div class="spinner"></div>
+
+            <div class="title">
+              Analyzing Article...
+            </div>
+
+            <div class="subtitle">
+              AI is processing operational metrics and preparing the registry form.
+            </div>
+          </body>
+        </html>
+      `);
+
+      newTab.document.close();
+    }
+
     setAnalyzingUrl(article.url);
+
     toast.info("AI is evaluating article operational metrics... Please wait.");
-    
+
     try {
-      const response = await axios.post('/analyze-news', { 
+      const response = await axios.post('/analyze-news', {
         url: article.url,
         title: article.title,
         media_outlet: article.media_outlet,
         date: article.date
       });
-      
-      router.visit('/add-news', {
-        method: 'get',
-        data: {
-          title: response.data.title || article.title,
-          url: response.data.url || article.url,
-          date: response.data.date || article.date,
-          source: response.data.media_outlet || article.media_outlet,
-          summary: response.data.summary || '',
-          category: response.data.category || '',
-          reporter: response.data.reporter || '',
-          scope: response.data.scope || '',
-          unit_involved: response.data.unit_involved || '',
-          topic: response.data.topic || '',
-        }
-      });
+
+      const queryParams = new URLSearchParams({
+        title: response.data.title || article.title || '',
+        url: response.data.url || article.url || '',
+        date: response.data.date || article.date || '',
+        source: response.data.media_outlet || article.media_outlet || '',
+        summary: response.data.summary || '',
+        category: response.data.category || '',
+        reporter: response.data.reporter || '',
+        scope: response.data.scope || '',
+        unit_involved: response.data.unit_involved || '',
+        topic: response.data.topic || ''
+      }).toString();
+
+      if (newTab) {
+        newTab.location.href = `/add-news?${queryParams}`;
+      }
+
+      setAnalyzedUrls(prev => [...prev, article.url]);
+
+      toast.success("Analysis complete! Form opened securely in a new tab.");
     } catch (err: any) {
+      if (newTab) {
+        newTab.close();
+      }
+
       const actualError = err.response?.data?.error || err.message || "Web scraper extraction failure.";
+
       toast.error(`AI Analysis Failed: ${actualError}`, { duration: 6000 });
     } finally {
       setAnalyzingUrl(null);
@@ -91,14 +173,15 @@ export default function PublicStream() {
               <Globe className="size-5 text-sky-600" /> Open-Source Media (OSINT) Streaming Network
             </CardTitle>
           </CardHeader>
+
           <CardContent className="pt-4 space-y-4">
             <div className="flex flex-col sm:flex-row gap-2">
-              {/* Scope filter Selection Tool */}
               <div className="w-full sm:w-48 shrink-0">
                 <Select value={selectedScope} onValueChange={(val) => setSelectedScope(val)}>
                   <SelectTrigger className="bg-white border-slate-300 text-slate-900 font-bold focus:ring-sky-600 h-10">
                     <SelectValue placeholder="Select Coverage" />
                   </SelectTrigger>
+
                   <SelectContent className="bg-white border border-slate-200 shadow-xl z-50">
                     <SelectItem value="Philippines" className={dropdownItemClass}>🇵🇭 Philippines</SelectItem>
                     <SelectItem value="International" className={dropdownItemClass}>🌐 International</SelectItem>
@@ -107,14 +190,20 @@ export default function PublicStream() {
               </div>
 
               <div className="flex-1 flex gap-2">
-                <Input 
+                <Input
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   placeholder="Search any Command metrics (e.g., 10ID, EastMinCom, NPA encounter)..."
                   className="bg-slate-50 border-slate-300 text-slate-900 focus:border-sky-600 focus:ring-sky-600 font-medium h-10"
                   onKeyDown={e => e.key === 'Enter' && fetchLiveStream()}
                 />
-                <Button type="button" onClick={fetchLiveStream} disabled={isSearching || analyzingUrl !== null} className="bg-sky-600 hover:bg-sky-700 text-white font-bold shrink-0 h-10">
+
+                <Button
+                  type="button"
+                  onClick={fetchLiveStream}
+                  disabled={isSearching || analyzingUrl !== null}
+                  className="bg-sky-600 hover:bg-sky-700 text-white font-bold shrink-0 h-10"
+                >
                   {isSearching ? <Loader2 className="size-4 animate-spin mr-2" /> : <Search className="size-4 mr-2" />}
                   Scan Network
                 </Button>
@@ -130,25 +219,54 @@ export default function PublicStream() {
               ) : searchResults.length > 0 ? (
                 searchResults.map((article, idx) => {
                   const isThisAnalyzing = analyzingUrl === article.url;
+                  const isAnalyzed = analyzedUrls.includes(article.url);
+
                   return (
-                    <div key={idx} className="p-4 rounded-lg border border-slate-200 bg-white hover:border-sky-300 transition-all shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 group">
+                    <div
+                      key={idx}
+                      className="p-4 rounded-lg border border-slate-200 bg-white hover:border-sky-300 transition-all shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 group"
+                    >
                       <div className="space-y-1">
-                        <h4 className="font-bold text-slate-900 group-hover:text-sky-700 transition-colors text-base leading-snug">{article.title}</h4>
+                        <h4 className="font-bold text-slate-900 group-hover:text-sky-700 transition-colors text-base leading-snug">
+                          {article.title}
+                        </h4>
+
                         <p className="text-xs text-slate-500 font-medium">
-                          Network Outlet: <span className="text-slate-700 font-bold">{article.media_outlet}</span> | Published: {article.date}
+                          Network Outlet:
+                          <span className="text-slate-700 font-bold"> {article.media_outlet}</span>
+                          {' '}| Published: {article.date}
                         </p>
                       </div>
+
                       <div className="flex items-center gap-2 shrink-0 w-full md:w-auto">
-                        <a href={article.url} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center px-3 py-2 border border-slate-300 rounded-md text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50 gap-1 w-1/2 md:w-auto">
-                          <ExternalLink className="size-3.5" /> Source
-                        </a>
-                        <Button 
-                          onClick={() => handleLiveAIAnalysis(article)} 
-                          disabled={analyzingUrl !== null}
-                          className="bg-sky-600 hover:bg-sky-700 text-white font-bold text-sm flex gap-1 w-1/2 md:w-auto"
+                        <a
+                          href={article.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center justify-center px-3 py-2 border border-slate-300 rounded-md text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50 gap-1 w-1/2 md:w-auto"
                         >
-                          {isThisAnalyzing ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
-                          {isThisAnalyzing ? "Analyzing..." : "Analyze"}
+                          <ExternalLink className="size-3.5" />
+                          Source
+                        </a>
+
+                        <Button
+                          onClick={() => handleLiveAIAnalysis(article)}
+                          disabled={analyzingUrl !== null || isAnalyzed}
+                          className={`font-bold text-sm flex gap-1 w-1/2 md:w-auto transition-colors ${
+                            isAnalyzed
+                              ? 'bg-green-600 hover:bg-green-700 text-white opacity-100'
+                              : 'bg-sky-600 hover:bg-sky-700 text-white'
+                          }`}
+                        >
+                          {isThisAnalyzing ? (
+                            <Loader2 className="size-3.5 animate-spin" />
+                          ) : isAnalyzed ? (
+                            <CheckCircle className="size-3.5" />
+                          ) : (
+                            <Sparkles className="size-3.5" />
+                          )}
+
+                          {isThisAnalyzing ? "Analyzing..." : isAnalyzed ? "Analyzed" : "Analyze"}
                         </Button>
                       </div>
                     </div>
