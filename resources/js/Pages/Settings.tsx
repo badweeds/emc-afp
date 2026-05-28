@@ -162,9 +162,23 @@ export default function Settings({ activeUsers = [] }: { activeUsers?: any[] }) 
                     />
                     {profileErrors.email && <p className="text-red-500 text-xs font-bold">{profileErrors.email}</p>}
                   </div>
-                  <Button disabled={profileProcessing} className="bg-[#1E293B] hover:bg-[#0f172a]">
-                    Save Profile Changes
-                  </Button>
+                  <Button
+  disabled={profileProcessing}
+  className={`transition-all duration-300 text-white ${
+    profileProcessing
+      ? 'bg-emerald-600 hover:bg-emerald-700'
+      : 'bg-[#1E293B] hover:bg-[#0f172a]'
+  }`}
+>
+  {profileProcessing ? (
+    <div className="flex items-center gap-2">
+      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+      Saving Changes...
+    </div>
+  ) : (
+    'Save Profile Changes'
+  )}
+</Button>
                 </form>
               </CardContent>
             </Card>

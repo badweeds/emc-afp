@@ -190,13 +190,13 @@ class ExportController extends Controller
         $c1 = $sigTable->addCell(5000);
         $c1->addText("Prepared By:", ['name' => 'Arial', 'bold' => true], ['spaceAfter' => 0]);
         $c1->addTextBreak(2);
-        $c1->addText("Allen D Guballo", ['name' => 'Arial', 'bold' => true], ['spaceAfter' => 0]);
-        $c1->addText("AM            PAF", ['name' => 'Arial'], ['spaceAfter' => 0]);
+        $c1->addText("", ['name' => 'Arial', 'bold' => true], ['spaceAfter' => 0]);
+        $c1->addText("", ['name' => 'Arial'], ['spaceAfter' => 0]);
         $c2 = $sigTable->addCell(5000);
         $c2->addText("Approved By:", ['name' => 'Arial', 'bold' => true], ['spaceAfter' => 0]);
         $c2->addTextBreak(2);
-        $c2->addText("Ryann R Velez", ['name' => 'Arial', 'bold' => true], ['spaceAfter' => 0]);
-        $c2->addText("MAJ     (Inf) PA", ['name' => 'Arial'], ['spaceAfter' => 0]);
+        $c2->addText("", ['name' => 'Arial', 'bold' => true], ['spaceAfter' => 0]);
+        $c2->addText("", ['name' => 'Arial'], ['spaceAfter' => 0]);
 
         // NEWS CLIPPINGS
         $section->addPageBreak();
